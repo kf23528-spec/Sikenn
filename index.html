@@ -2,550 +2,110 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>POLO.fbx 3D Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>白い空間の赤い箱</title>
   <style>
     html, body {
       margin: 0;
+      padding: 0;
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: #05070d;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      touch-action: none;
-      user-select: none;
+      background: #ffffff;
     }
-    #hud {
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      color: #fff;
+    canvas {
+      display: block;
     }
-    #title {
-      position: absolute;
-      top: 14px;
-      left: 14px;
-      padding: 10px 12px;
-      border-radius: 14px;
-      background: rgba(10, 14, 24, 0.55);
-      backdrop-filter: blur(10px);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-      line-height: 1.45;
-      font-size: 14px;
-    }
-    #loading {
-      position: absolute;
-      inset: 0;
-      display: grid;
-      place-items: center;
-      background: radial-gradient(circle at center, rgba(18,24,44,0.92), rgba(3,5,10,0.98));
-      transition: opacity 0.35s ease, visibility 0.35s ease;
-      z-index: 20;
-    }
-    #loading.hide {
-      opacity: 0;
-      visibility: hidden;
-    }
-    .panel {
-      text-align: center;
-      padding: 22px 26px;
-      border-radius: 20px;
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.1);
-      box-shadow: 0 18px 50px rgba(0,0,0,0.35);
-      min-width: min(84vw, 380px);
-    }
-    .bar {
-      width: 100%;
-      height: 10px;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.12);
-      overflow: hidden;
-      margin-top: 14px;
-    }
-    .bar > div {
-      width: 0%;
-      height: 100%;
-      border-radius: inherit;
-      background: linear-gradient(90deg, #7cf, #9f7cff);
-      transition: width 0.15s linear;
-    }
-    #controls {
-      position: absolute;
-      left: 14px;
-      bottom: 14px;
-      right: 14px;
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      align-items: end;
-      font-size: 12px;
-      color: rgba(255,255,255,0.85);
-    }
-    .chip {
-      padding: 10px 12px;
-      border-radius: 999px;
-      background: rgba(10, 14, 24, 0.55);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255,255,255,0.1);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.22);
-    }
-    #mobileButtons {
-      position: absolute;
-      inset: auto 0 0 0;
-      display: none;
-      pointer-events: none;
-    }
-    .pad {
-      position: absolute;
-      bottom: 16px;
-      width: 140px;
-      height: 140px;
-      pointer-events: auto;
-      touch-action: none;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.08);
-      backdrop-filter: blur(8px);
-    }
-    #padLeft { left: 16px; }
-    #padRight { right: 16px; }
-    .stick {
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      width: 54px;
-      height: 54px;
-      margin-left: -27px;
-      margin-top: -27px;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.22);
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18);
-      transform: translate(0px, 0px);
-    }
-    @media (max-width: 900px) {
-      #mobileButtons { display: block; }
-    }
-    canvas { display: block; }
   </style>
 </head>
 <body>
-  <div id="hud">
-    <div id="title">
-      <div><strong>POLO.fbx 3D Game</strong></div>
-      <div>WASD / 画面左で移動、マウスで視点</div>
-      <div>FBXに入っているアニメーションを自動再生</div>
-    </div>
-    <div id="loading">
-      <div class="panel">
-        <div style="font-size:18px;font-weight:700;letter-spacing:0.04em;">Loading POLO.fbx...</div>
-        <div id="loadingText" style="margin-top:8px;opacity:.9;">0%</div>
-        <div class="bar"><div id="barFill"></div></div>
-        <div style="margin-top:12px;opacity:.75;font-size:12px;">POLO.fbx を同じフォルダに置いてください</div>
-      </div>
-    </div>
-    <div id="controls">
-      <div class="chip">右ドラッグ/マウス移動: 視点</div>
-      <div class="chip">Space: ジャンプ風演出 / R: リセット</div>
-    </div>
-    <div id="mobileButtons">
-      <div id="padLeft" class="pad"><div class="stick" id="stickLeft"></div></div>
-      <div id="padRight" class="pad"><div class="stick" id="stickRight"></div></div>
-    </div>
-  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/controls/OrbitControls.js"></script>
 
-  <script type="module">
-    import * as THREE from 'https://unpkg.com/three@0.161.0/build/three.module.js';
-    import { FBXLoader } from 'https://unpkg.com/three@0.161.0/examples/jsm/loaders/FBXLoader.js';
-    import { OrbitControls } from 'https://unpkg.com/three@0.161.0/examples/jsm/controls/OrbitControls.js';
-
-    const loadingEl = document.getElementById('loading');
-    const loadingText = document.getElementById('loadingText');
-    const barFill = document.getElementById('barFill');
-
-    let failureBox = null;
-
-    function showLoadingFailure(message) {
-      console.error('POLO.fbx load failed:', message);
-      loadingEl.classList.add('hide');
-      loadingText.textContent = `失敗: ${message}`;
-      barFill.style.width = '100%';
-      barFill.style.background = 'linear-gradient(90deg, #ff6b6b, #ff9f43)';
-
-      if (!failureBox) {
-        const boxGeo = new THREE.BoxGeometry(1.8, 1.8, 1.8);
-        const boxMat = new THREE.MeshStandardMaterial({ color: 0xff2222, roughness: 0.7, metalness: 0.1 });
-        failureBox = new THREE.Mesh(boxGeo, boxMat);
-        failureBox.position.set(0, 1, 0);
-        failureBox.castShadow = true;
-        failureBox.receiveShadow = true;
-        scene.add(failureBox);
-      }
-
-      const label = document.createElement('div');
-      label.style.position = 'absolute';
-      label.style.left = '50%';
-      label.style.top = '18px';
-      label.style.transform = 'translateX(-50%)';
-      label.style.padding = '10px 14px';
-      label.style.borderRadius = '14px';
-      label.style.background = 'rgba(60, 0, 0, 0.72)';
-      label.style.color = '#fff';
-      label.style.fontWeight = '700';
-      label.style.zIndex = '30';
-      label.textContent = `失敗: ${message}`;
-      document.body.appendChild(label);
-
-      setTimeout(() => label.remove(), 5000);
-    }
-
-    function friendlyError(err) {
-      if (!err) return '不明なエラー';
-      if (typeof err === 'string') return err;
-      if (err.message) return err.message;
-      if (err.statusText) return err.statusText;
-      return 'ファイルが見つからない、またはFBXの形式が対応していない可能性があります';
-    }
-
+  <script>
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x07101f);
-    scene.fog = new THREE.Fog(0x07101f, 20, 90);
+    scene.background = new THREE.Color(0xffffff);
+    scene.fog = new THREE.Fog(0xffffff, 20, 60);
 
-    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 500);
-    camera.position.set(0, 3.2, 7.5);
+    const camera = new THREE.PerspectiveCamera(
+      60,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      1000
+    );
+    camera.position.set(4, 3, 6);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     document.body.appendChild(renderer.domElement);
 
-    const controls = new OrbitControls(camera, renderer.domElement);
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.enablePan = false;
-    controls.minDistance = 4;
-    controls.maxDistance = 12;
-    controls.maxPolarAngle = Math.PI * 0.48;
-    controls.target.set(0, 1.2, 0);
 
-    // Lights
-    const hemi = new THREE.HemisphereLight(0x9fd0ff, 0x1a2340, 1.5);
-    scene.add(hemi);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.6);
+    scene.add(ambientLight);
 
-    const dir = new THREE.DirectionalLight(0xffffff, 2.2);
-    dir.position.set(8, 12, 6);
-    dir.castShadow = true;
-    dir.shadow.mapSize.set(2048, 2048);
-    dir.shadow.camera.near = 1;
-    dir.shadow.camera.far = 40;
-    dir.shadow.camera.left = -18;
-    dir.shadow.camera.right = 18;
-    dir.shadow.camera.top = 18;
-    dir.shadow.camera.bottom = -18;
-    scene.add(dir);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    directionalLight.position.set(5, 10, 7);
+    directionalLight.castShadow = true;
+    scene.add(directionalLight);
 
-    const fill = new THREE.DirectionalLight(0x6b7fff, 0.7);
-    fill.position.set(-8, 5, -4);
-    scene.add(fill);
+    // 白い床
+    const floorGeo = new THREE.PlaneGeometry(40, 40);
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0xf5f5f5 });
+    const floor = new THREE.Mesh(floorGeo, floorMat);
+    floor.rotation.x = -Math.PI / 2;
+    floor.receiveShadow = true;
+    scene.add(floor);
 
-    // Ground
-    const groundGeo = new THREE.PlaneGeometry(200, 200, 1, 1);
-    const groundMat = new THREE.MeshStandardMaterial({ color: 0x18243c, roughness: 1, metalness: 0 });
-    const ground = new THREE.Mesh(groundGeo, groundMat);
-    ground.rotation.x = -Math.PI / 2;
-    ground.receiveShadow = true;
-    scene.add(ground);
+    // 白い壁
+    const wallMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
 
-    // Simple scenery
-    const stars = new THREE.Group();
-    const starGeo = new THREE.SphereGeometry(0.04, 8, 8);
-    const starMat = new THREE.MeshBasicMaterial({ color: 0xbfd7ff });
-    for (let i = 0; i < 120; i++) {
-      const s = new THREE.Mesh(starGeo, starMat);
-      const r = 35 + Math.random() * 60;
-      const a = Math.random() * Math.PI * 2;
-      const y = 8 + Math.random() * 20;
-      s.position.set(Math.cos(a) * r, y, Math.sin(a) * r);
-      stars.add(s);
-    }
-    scene.add(stars);
+    const backWall = new THREE.Mesh(new THREE.PlaneGeometry(40, 15), wallMat);
+    backWall.position.set(0, 7.5, -20);
+    scene.add(backWall);
 
-    const props = new THREE.Group();
-    const trunkGeo = new THREE.CylinderGeometry(0.18, 0.28, 2.0, 7);
-    const leafGeo = new THREE.ConeGeometry(0.9, 2.3, 8);
-    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x6d4a2f, roughness: 1 });
-    const leafMat = new THREE.MeshStandardMaterial({ color: 0x335f3c, roughness: 1 });
-    for (let i = 0; i < 18; i++) {
-      const tree = new THREE.Group();
-      const trunk = new THREE.Mesh(trunkGeo, trunkMat);
-      trunk.position.y = 1.0;
-      trunk.castShadow = true;
-      trunk.receiveShadow = true;
-      const leaf = new THREE.Mesh(leafGeo, leafMat);
-      leaf.position.y = 2.55;
-      leaf.castShadow = true;
-      tree.add(trunk, leaf);
-      const angle = Math.random() * Math.PI * 2;
-      const dist = 8 + Math.random() * 25;
-      tree.position.set(Math.cos(angle) * dist, 0, Math.sin(angle) * dist);
-      tree.scale.setScalar(0.8 + Math.random() * 1.2);
-      props.add(tree);
-    }
-    scene.add(props);
+    const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(40, 15), wallMat);
+    leftWall.position.set(-20, 7.5, 0);
+    leftWall.rotation.y = Math.PI / 2;
+    scene.add(leftWall);
 
-    const clock = new THREE.Clock();
-    let model = null;
-    let mixer = null;
-    let actions = [];
-    let currentAction = null;
-    let loaded = false;
+    const rightWall = new THREE.Mesh(new THREE.PlaneGeometry(40, 15), wallMat);
+    rightWall.position.set(20, 7.5, 0);
+    rightWall.rotation.y = -Math.PI / 2;
+    scene.add(rightWall);
 
-    const loader = new FBXLoader();
+    const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), wallMat);
+    ceiling.rotation.x = Math.PI / 2;
+    ceiling.position.y = 15;
+    scene.add(ceiling);
 
-    const fbxUrl = './POLO.fbx';
-    const loadTimeoutMs = 20000;
-    const timeoutId = setTimeout(() => {
-      showLoadingFailure(`タイムアウトしました。${loadTimeoutMs / 1000}秒以内に応答がありません。ファイル名、置き場所、GitHub Pagesへの反映を確認してください。`);
-    }, loadTimeoutMs);
-
-    fetch(fbxUrl, { cache: 'no-store' })
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status} ${res.statusText} — POLO.fbx が見つかりません`);
-        }
-        return res.arrayBuffer();
-      })
-      .then((buffer) => {
-        clearTimeout(timeoutId);
-        const fbx = loader.parse(buffer, '');
-        model = fbx;
-        model.traverse((child) => {
-          if (child.isMesh) {
-            child.castShadow = true;
-            child.receiveShadow = true;
-            if (child.material) {
-              child.material = child.material.clone();
-              child.material.roughness = Math.min(child.material.roughness ?? 1, 1);
-            }
-          }
-        });
-
-        model.scale.setScalar(0.01);
-        model.position.set(0, 0, 0);
-        scene.add(model);
-
-        const box = new THREE.Box3().setFromObject(model);
-        const size = new THREE.Vector3();
-        box.getSize(size);
-        const center = new THREE.Vector3();
-        box.getCenter(center);
-
-        model.position.sub(center);
-        model.position.y -= box.min.y;
-
-        mixer = new THREE.AnimationMixer(model);
-        const clips = fbx.animations || [];
-        if (clips.length > 0) {
-          actions = clips.map((clip) => {
-            const action = mixer.clipAction(clip);
-            action.clampWhenFinished = false;
-            action.loop = THREE.LoopRepeat;
-            action.enabled = true;
-            return action;
-          });
-          currentAction = actions[0];
-          currentAction.play();
-        }
-
-        loaded = true;
-        loadingEl.classList.add('hide');
-        loadingText.textContent = clips.length > 0 ? '読み込み成功' : '読み込み成功（アニメーションなし）';
-        barFill.style.width = '100%';
-      })
-      .catch((err) => {
-        clearTimeout(timeoutId);
-        showLoadingFailure(friendlyError(err));
-      });
-
-    // Player movement
-    const keys = new Set();
-    let yaw = 0;
-    let targetYaw = 0;
-    let velocityY = 0;
-    let jumpTimer = 0;
-    const move = new THREE.Vector3();
-    const forward = new THREE.Vector3();
-    const right = new THREE.Vector3();
-
-    const mobile = {
-      left: { active: false, id: null, x: 0, y: 0, dx: 0, dy: 0 },
-      right: { active: false, id: null, x: 0, y: 0, dx: 0, dy: 0 },
-    };
-
-    function bindPad(padEl, stickEl, state) {
-      const size = 140;
-      const max = 44;
-      const start = (e) => {
-        const t = e.changedTouches ? e.changedTouches[0] : e;
-        state.active = true;
-        state.id = t.identifier ?? 'mouse';
-        const r = padEl.getBoundingClientRect();
-        state.x = r.left + r.width / 2;
-        state.y = r.top + r.height / 2;
-        state.dx = 0;
-        state.dy = 0;
-      };
-      const moveFn = (e) => {
-        if (!state.active) return;
-        const list = e.changedTouches ? Array.from(e.changedTouches) : [e];
-        const t = list.find(v => (v.identifier ?? 'mouse') === state.id);
-        if (!t) return;
-        const clientX = t.clientX ?? t.pageX;
-        const clientY = t.clientY ?? t.pageY;
-        const dx = clientX - state.x;
-        const dy = clientY - state.y;
-        state.dx = Math.max(-max, Math.min(max, dx));
-        state.dy = Math.max(-max, Math.min(max, dy));
-        stickEl.style.transform = `translate(${state.dx}px, ${state.dy}px)`;
-      };
-      const end = (e) => {
-        const list = e.changedTouches ? Array.from(e.changedTouches) : [e];
-        const t = list.find(v => (v.identifier ?? 'mouse') === state.id);
-        if (!t) return;
-        state.active = false;
-        state.id = null;
-        state.dx = 0;
-        state.dy = 0;
-        stickEl.style.transform = 'translate(0px, 0px)';
-      };
-      padEl.addEventListener('touchstart', start, { passive: false });
-      padEl.addEventListener('touchmove', moveFn, { passive: false });
-      padEl.addEventListener('touchend', end, { passive: false });
-      padEl.addEventListener('touchcancel', end, { passive: false });
-      padEl.addEventListener('pointerdown', start);
-      window.addEventListener('pointermove', moveFn);
-      window.addEventListener('pointerup', end);
-    }
-
-    const padLeft = document.getElementById('padLeft');
-    const padRight = document.getElementById('padRight');
-    const stickLeft = document.getElementById('stickLeft');
-    const stickRight = document.getElementById('stickRight');
-    bindPad(padLeft, stickLeft, mobile.left);
-    bindPad(padRight, stickRight, mobile.right);
-
-    window.addEventListener('keydown', (e) => {
-      keys.add(e.code);
-      if (e.code === 'KeyR' && model) {
-        model.position.set(0, 0, 0);
-        velocityY = 0;
-        jumpTimer = 0;
-      }
-      if (e.code === 'Space') {
-        velocityY = 4.4;
-      }
+    // 赤い箱
+    const boxGeo = new THREE.BoxGeometry(1.5, 1.5, 1.5);
+    const boxMat = new THREE.MeshStandardMaterial({
+      color: 0xff0000,
+      roughness: 0.5,
+      metalness: 0.1
     });
-    window.addEventListener('keyup', (e) => keys.delete(e.code));
-
-    let dragging = false;
-    let lastX = 0;
-    let lastY = 0;
-    renderer.domElement.addEventListener('pointerdown', (e) => {
-      dragging = true;
-      lastX = e.clientX;
-      lastY = e.clientY;
-    });
-    window.addEventListener('pointerup', () => dragging = false);
-    window.addEventListener('pointermove', (e) => {
-      if (!dragging) return;
-      const dx = e.clientX - lastX;
-      const dy = e.clientY - lastY;
-      lastX = e.clientX;
-      lastY = e.clientY;
-      controls.rotateLeft(-dx * 0.004);
-      controls.rotateUp(-dy * 0.004);
-    });
-
-    function playAnimationBySpeed(speed) {
-      if (!mixer || actions.length === 0) return;
-      let desired = 0;
-      if (speed > 0.05) desired = Math.min(actions.length - 1, 1);
-      if (actions.length === 1) desired = 0;
-      const next = actions[desired];
-      if (currentAction !== next) {
-        if (currentAction) currentAction.fadeOut(0.15);
-        next.reset().fadeIn(0.15).play();
-        currentAction = next;
-      }
-    }
+    const redBox = new THREE.Mesh(boxGeo, boxMat);
+    redBox.castShadow = true;
+    redBox.position.y = 0.75;
+    scene.add(redBox);
 
     function animate() {
       requestAnimationFrame(animate);
-      const dt = Math.min(clock.getDelta(), 0.033);
-
-      const inputX = (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0) + (mobile.left.active ? mobile.left.dx / 44 : 0);
-      const inputZ = (keys.has('KeyS') ? 1 : 0) - (keys.has('KeyW') ? 1 : 0) + (mobile.left.active ? -mobile.left.dy / 44 : 0);
-      const lookX = mobile.right.active ? mobile.right.dx / 44 : 0;
-      const lookY = mobile.right.active ? mobile.right.dy / 44 : 0;
-
-      controls.rotateLeft(-lookX * 0.03);
-      controls.rotateUp(-lookY * 0.02);
-
-      if (model) {
-        const speed = Math.hypot(inputX, inputZ);
-        if (speed > 0.001) {
-          targetYaw = Math.atan2(inputX, inputZ);
-        }
-        yaw = THREE.MathUtils.lerpAngle(yaw, targetYaw, 0.12);
-        model.rotation.y = yaw;
-
-        forward.set(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
-        right.set(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
-        move.set(0, 0, 0);
-        move.addScaledVector(forward, -inputZ);
-        move.addScaledVector(right, inputX);
-        if (move.lengthSq() > 0.0001) move.normalize();
-
-        const moveSpeed = 4.0;
-        model.position.addScaledVector(move, moveSpeed * dt);
-
-        velocityY -= 10.5 * dt;
-        model.position.y += velocityY * dt;
-        if (model.position.y <= 0) {
-          model.position.y = 0;
-          velocityY = 0;
-        }
-
-        jumpTimer += dt;
-        model.position.x = THREE.MathUtils.clamp(model.position.x, -70, 70);
-        model.position.z = THREE.MathUtils.clamp(model.position.z, -70, 70);
-
-        const motion = Math.abs(inputX) + Math.abs(inputZ);
-        playAnimationBySpeed(motion);
-        if (mixer) mixer.update(dt);
-
-        // Camera follows the character smoothly
-        const camOffset = new THREE.Vector3(0, 3.2, 7.2).applyAxisAngle(new THREE.Vector3(0, 1, 0), controls.getAzimuthalAngle());
-        const desiredCamPos = model.position.clone().add(camOffset);
-        camera.position.lerp(desiredCamPos, 0.08);
-        controls.target.lerp(model.position.clone().add(new THREE.Vector3(0, 1.2, 0)), 0.12);
-      }
-
-      // Subtle environment motion
-      stars.rotation.y += dt * 0.01;
-      props.rotation.y += dt * 0.001;
+      redBox.rotation.y += 0.01;
+      redBox.rotation.x += 0.005;
       controls.update();
       renderer.render(scene, camera);
     }
-
     animate();
 
-    window.addEventListener('resize', () => {
+    window.addEventListener("resize", () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     });
   </script>
 </body>
