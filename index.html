@@ -2,8 +2,8 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>白い試験場のPOLO.fbx</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Three.js FBX Animation Test</title>
   <style>
     html, body {
       margin: 0;
@@ -11,203 +11,253 @@
       height: 100%;
       overflow: hidden;
       background: #f2f2f2;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
-    canvas { display: block; }
-    #log {
+
+    #app {
       position: fixed;
-      left: 12px;
-      top: 12px;
+      inset: 0;
+    }
+
+    #loading {
+      position: absolute;
+      left: 16px;
+      top: 16px;
       z-index: 10;
-      font-family: monospace;
-      font-size: 13px;
-      line-height: 1.45;
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.88);
       color: #222;
-      background: rgba(255,255,255,0.88);
-      padding: 10px 12px;
-      border-radius: 8px;
+      font-size: 14px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+      user-select: none;
+    }
+
+    #errorBox {
+      display: none;
+      position: absolute;
+      left: 16px;
+      top: 58px;
+      z-index: 10;
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: rgba(255, 235, 235, 0.96);
+      color: #a10000;
+      font-size: 14px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+      max-width: min(520px, calc(100vw - 32px));
       white-space: pre-wrap;
-      max-width: min(92vw, 520px);
-      pointer-events: none;
     }
   </style>
 </head>
 <body>
-  <div id="log">準備中...</div>
+  <div id="app">
+    <div id="loading">polo.fbx を読み込み中…</div>
+    <div id="errorBox"></div>
+  </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/controls/OrbitControls.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/loaders/FBXLoader.js"></script>
+  <script type="module">
+    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+    import { FBXLoader } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/FBXLoader.js';
 
-  <script>
-    const logBox = document.getElementById("log");
-    function log(msg) {
-      console.log(msg);
-      logBox.textContent += "\n" + msg;
-    }
+    let scene, camera, renderer;
+    let mixer = null;
+    let clock = new THREE.Clock();
 
-    if (!window.THREE) {
-      logBox.textContent = "Three.js の読み込みに失敗しました。";
-      throw new Error("THREE is not loaded");
-    }
+    let fallbackBox = null;
+    let modelRoot = null;
 
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xf7f7f7);
-    scene.fog = new THREE.Fog(0xf7f7f7, 18, 60);
+    const loadingEl = document.getElementById('loading');
+    const errorEl = document.getElementById('errorBox');
 
-    const camera = new THREE.PerspectiveCamera(
-      60,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      1000
-    );
-    camera.position.set(4, 3, 6);
+    init();
+    animate();
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(window.devicePixelRatio || 1);
-    renderer.shadowMap.enabled = true;
-    document.body.appendChild(renderer.domElement);
+    function init() {
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xf3f3f3);
+      scene.fog = new THREE.Fog(0xf3f3f3, 10, 45);
 
-    const controls = new THREE.OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
+      camera = new THREE.PerspectiveCamera(
+        50,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+      );
+      camera.position.set(0, 1.6, 4.5);
+      camera.lookAt(0, 1.0, 0);
 
-    const ambient = new THREE.AmbientLight(0xffffff, 1.5);
-    scene.add(ambient);
+      renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        alpha: false
+      });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.shadowMap.enabled = true;
+      document.getElementById('app').appendChild(renderer.domElement);
 
-    const hemi = new THREE.HemisphereLight(0xffffff, 0xe5e5e5, 0.8);
-    scene.add(hemi);
+      const ambient = new THREE.AmbientLight(0xffffff, 1.5);
+      scene.add(ambient);
 
-    const dir = new THREE.DirectionalLight(0xffffff, 1.2);
-    dir.position.set(5, 10, 7);
-    dir.castShadow = true;
-    scene.add(dir);
+      const dirLight = new THREE.DirectionalLight(0xffffff, 2.2);
+      dirLight.position.set(4, 8, 5);
+      dirLight.castShadow = true;
+      scene.add(dirLight);
 
-    // 床
-    const floor = new THREE.Mesh(
-      new THREE.PlaneGeometry(40, 40),
-      new THREE.MeshStandardMaterial({ color: 0xededed, roughness: 1 })
-    );
-    floor.rotation.x = -Math.PI / 2;
-    floor.receiveShadow = true;
-    scene.add(floor);
+      const fillLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      fillLight.position.set(-4, 3, -3);
+      scene.add(fillLight);
 
-    // 壁
-    const wallMat = new THREE.MeshStandardMaterial({ color: 0xfdfdfd, roughness: 1 });
+      const floorGeo = new THREE.PlaneGeometry(50, 50);
+      const floorMat = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        roughness: 1.0,
+        metalness: 0.0
+      });
+      const floor = new THREE.Mesh(floorGeo, floorMat);
+      floor.rotation.x = -Math.PI / 2;
+      floor.receiveShadow = true;
+      scene.add(floor);
 
-    const backWall = new THREE.Mesh(new THREE.PlaneGeometry(40, 15), wallMat);
-    backWall.position.set(0, 7.5, -20);
-    scene.add(backWall);
+      const grid = new THREE.GridHelper(50, 50, 0xdddddd, 0xeeeeee);
+      grid.position.y = 0.001;
+      scene.add(grid);
 
-    const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(40, 15), wallMat);
-    leftWall.position.set(-20, 7.5, 0);
-    leftWall.rotation.y = Math.PI / 2;
-    scene.add(leftWall);
+      createFallbackBox();
 
-    const rightWall = new THREE.Mesh(new THREE.PlaneGeometry(40, 15), wallMat);
-    rightWall.position.set(20, 7.5, 0);
-    rightWall.rotation.y = -Math.PI / 2;
-    scene.add(rightWall);
+      const loader = new FBXLoader();
+      loader.load(
+        'polo.fbx',
+        (object) => {
+          loadingEl.textContent = '読み込み完了';
+          setTimeout(() => {
+            loadingEl.style.display = 'none';
+          }, 600);
 
-    const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), wallMat);
-    ceiling.rotation.x = Math.PI / 2;
-    ceiling.position.y = 15;
-    scene.add(ceiling);
-
-    // 見やすさ用の薄いグリッド
-    const grid = new THREE.GridHelper(40, 40, 0xdddddd, 0xe9e9e9);
-    grid.position.y = 0.001;
-    scene.add(grid);
-
-    let model = null;
-
-    log("FBX読み込み開始: POLO.fbx");
-
-    const loader = new THREE.FBXLoader();
-    loader.load(
-      "POLO.fbx",
-      (object) => {
-        log("FBX読み込み成功");
-
-        model = object;
-        scene.add(model);
-
-        model.traverse((child) => {
-          if (child.isMesh) {
-            child.castShadow = true;
-            child.receiveShadow = true;
-
-            if (Array.isArray(child.material)) {
-              child.material.forEach(m => {
-                if (m) m.needsUpdate = true;
-              });
-            } else if (child.material) {
-              child.material.needsUpdate = true;
-            }
+          if (fallbackBox) {
+            scene.remove(fallbackBox);
+            fallbackBox.geometry.dispose();
+            fallbackBox.material.dispose();
+            fallbackBox = null;
           }
-        });
 
-        // 中心位置とサイズを自動調整
-        const box = new THREE.Box3().setFromObject(model);
-        const size = box.getSize(new THREE.Vector3());
-        const center = box.getCenter(new THREE.Vector3());
+          modelRoot = object;
+          object.traverse((child) => {
+            if (child.isMesh) {
+              child.castShadow = true;
+              child.receiveShadow = true;
+              if (child.material) {
+                if (Array.isArray(child.material)) {
+                  child.material.forEach((m) => {
+                    if (m.map) m.map.colorSpace = THREE.SRGBColorSpace;
+                  });
+                } else if (child.material.map) {
+                  child.material.map.colorSpace = THREE.SRGBColorSpace;
+                }
+              }
+            }
+          });
 
-        log(`元サイズ: x=${size.x.toFixed(3)}, y=${size.y.toFixed(3)}, z=${size.z.toFixed(3)}`);
-        log(`中心座標: x=${center.x.toFixed(3)}, y=${center.y.toFixed(3)}, z=${center.z.toFixed(3)}`);
+          // モデル全体を見やすいサイズに調整
+          const box = new THREE.Box3().setFromObject(object);
+          const size = new THREE.Vector3();
+          const center = new THREE.Vector3();
+          box.getSize(size);
+          box.getCenter(center);
 
-        model.position.sub(center);
+          const maxAxis = Math.max(size.x, size.y, size.z);
+          const targetSize = 1.8;
+          const scale = targetSize / (maxAxis || 1);
 
-        const maxDim = Math.max(size.x, size.y, size.z);
-        const targetSize = 2.5;
-        const scale = maxDim > 0 ? targetSize / maxDim : 1;
-        model.scale.setScalar(scale);
+          object.scale.setScalar(scale);
 
-        // 床の上に乗るように少し持ち上げる
-        const box2 = new THREE.Box3().setFromObject(model);
-        const minY = box2.min.y;
-        model.position.y -= minY;
+          const boxAfterScale = new THREE.Box3().setFromObject(object);
+          const centerAfterScale = new THREE.Vector3();
+          boxAfterScale.getCenter(centerAfterScale);
 
-        log(`スケール: ${scale.toFixed(4)}`);
-        log("配置調整完了");
-        log("回転アニメーション開始");
+          object.position.x += (object.position.x - centerAfterScale.x);
+          object.position.z += (object.position.z - centerAfterScale.z);
+          object.position.y -= boxAfterScale.min.y;
 
-        camera.position.set(4, 3, 6);
-        camera.lookAt(0, 1, 0);
-      },
-      (xhr) => {
-        if (xhr.total) {
-          const percent = Math.floor((xhr.loaded / xhr.total) * 100);
-          logBox.textContent = `読み込み中... ${percent}%`;
-        } else {
-          logBox.textContent = `読み込み中... ${Math.floor(xhr.loaded / 1024)} KB`;
+          scene.add(object);
+
+          // FBX内にアニメーションがあれば、先頭の1本をループ再生
+          if (object.animations && object.animations.length > 0) {
+            mixer = new THREE.AnimationMixer(object);
+            const clip = object.animations[0];
+            const action = mixer.clipAction(clip);
+            action.reset();
+            action.setLoop(THREE.LoopRepeat, Infinity);
+            action.clampWhenFinished = false;
+            action.enabled = true;
+            action.play();
+          } else {
+            mixer = null;
+            console.warn('polo.fbx にはアニメーションが含まれていません。');
+          }
+        },
+        (xhr) => {
+          if (xhr.total > 0) {
+            const percent = Math.floor((xhr.loaded / xhr.total) * 100);
+            loadingEl.textContent = `polo.fbx を読み込み中… ${percent}%`;
+          } else {
+            loadingEl.textContent = 'polo.fbx を読み込み中…';
+          }
+        },
+        (error) => {
+          console.error('polo.fbx の読み込みに失敗しました:', error);
+
+          loadingEl.style.display = 'none';
+          errorEl.style.display = 'block';
+          errorEl.textContent =
+            'polo.fbx の読み込みに失敗しました。\\n' +
+            '赤い箱を代わりに表示しています。\\n' +
+            String(error && error.message ? error.message : error);
+
+          if (fallbackBox) fallbackBox.visible = true;
         }
-      },
-      (error) => {
-        console.error(error);
-        log("読み込み失敗");
-        log(String(error));
-        log("・POLO.fbx が同じフォルダにあるか確認");
-        log("・ファイル名の大文字小文字を確認");
-        log("・ブラウザのコンソールも確認");
-      }
-    );
+      );
+
+      window.addEventListener('resize', onResize);
+    }
+
+    function createFallbackBox() {
+      const geo = new THREE.BoxGeometry(1, 1, 1);
+      const mat = new THREE.MeshStandardMaterial({
+        color: 0xff0000,
+        roughness: 0.6,
+        metalness: 0.0
+      });
+      fallbackBox = new THREE.Mesh(geo, mat);
+      fallbackBox.castShadow = true;
+      fallbackBox.receiveShadow = true;
+      fallbackBox.position.set(0, 0.5, 0);
+      scene.add(fallbackBox);
+    }
+
+    function onResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    }
 
     function animate() {
       requestAnimationFrame(animate);
 
-      if (model) {
-        model.rotation.y += 0.01;
+      const delta = clock.getDelta();
+      if (mixer) {
+        mixer.update(delta);
       }
 
-      controls.update();
+      if (fallbackBox) {
+        fallbackBox.rotation.y += 0.01;
+        fallbackBox.rotation.x += 0.005;
+      }
+
       renderer.render(scene, camera);
     }
-    animate();
-
-    window.addEventListener("resize", () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    });
   </script>
 </body>
 </html>
