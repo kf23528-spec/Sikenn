@@ -163,6 +163,22 @@
     const loadingText = document.getElementById('loadingText');
     const barFill = document.getElementById('barFill');
 
+    function showLoadingFailure(message) {
+      console.error('POLO.fbx load failed:', message);
+      loadingEl.classList.remove('hide');
+      loadingText.textContent = `失敗: ${message}`;
+      barFill.style.width = '100%';
+      barFill.style.background = 'linear-gradient(90deg, #ff6b6b, #ff9f43)';
+    }
+
+    function friendlyError(err) {
+      if (!err) return '不明なエラー';
+      if (typeof err === 'string') return err;
+      if (err.message) return err.message;
+      if (err.statusText) return err.statusText;
+      return 'ファイルが見つからない、またはFBXの形式が対応していない可能性があります';
+    }
+
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x07101f);
     scene.fog = new THREE.Fog(0x07101f, 20, 90);
@@ -258,9 +274,23 @@
     let loaded = false;
 
     const loader = new FBXLoader();
-    loader.load(
-      './POLO.fbx',
-      (fbx) => {
+
+    const fbxUrl = './POLO.fbx';
+    const loadTimeoutMs = 20000;
+    const timeoutId = setTimeout(() => {
+      showLoadingFailure(`タイムアウトしました。${loadTimeoutMs / 1000}秒以内に応答がありません。ファイル名、置き場所、GitHub Pagesへの反映を確認してください。`);
+    }, loadTimeoutMs);
+
+    fetch(fbxUrl, { cache: 'no-store' })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status} ${res.statusText} — POLO.fbx が見つかりません`);
+        }
+        return res.arrayBuffer();
+      })
+      .then((buffer) => {
+        clearTimeout(timeoutId);
+        const fbx = loader.parse(buffer, '');
         model = fbx;
         model.traverse((child) => {
           if (child.isMesh) {
@@ -302,28 +332,13 @@
 
         loaded = true;
         loadingEl.classList.add('hide');
-      },
-      (evt) => {
-        if (evt.total) {
-          const p = Math.round((evt.loaded / evt.total) * 100);
-          loadingText.textContent = `${p}%`;
-          barFill.style.width = `${p}%`;
-        }
-      },
-      (err) => {
-        console.error(err);
-        const reason = (() => {
-          if (!err) return '不明なエラー';
-          if (typeof err === 'string') return err;
-          if (err.message) return err.message;
-          if (err.statusText) return err.statusText;
-          return 'ファイルが見つからない、またはFBXの形式が対応していない可能性があります';
-        })();
-        console.error('POLO.fbx load failed:', err);
-        loadingText.textContent = `失敗: ${reason}`;
+        loadingText.textContent = clips.length > 0 ? '読み込み成功' : '読み込み成功（アニメーションなし）';
         barFill.style.width = '100%';
-      }
-    );
+      })
+      .catch((err) => {
+        clearTimeout(timeoutId);
+        showLoadingFailure(friendlyError(err));
+      });
 
     // Player movement
     const keys = new Set();
