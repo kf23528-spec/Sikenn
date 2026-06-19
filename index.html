@@ -3,30 +3,44 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>白い空間のPOLO.fbx</title>
+  <title>白い試験場の赤い箱</title>
   <style>
     html, body {
       margin: 0;
-      padding: 0;
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: #ffffff;
+      background: #f2f2f2;
     }
-    canvas {
-      display: block;
+    #msg {
+      position: fixed;
+      left: 12px;
+      top: 12px;
+      z-index: 10;
+      font-family: sans-serif;
+      font-size: 14px;
+      color: #333;
+      background: rgba(255,255,255,0.85);
+      padding: 8px 10px;
+      border-radius: 8px;
     }
+    canvas { display: block; }
   </style>
 </head>
 <body>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/controls/OrbitControls.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/loaders/FBXLoader.js"></script>
+  <div id="msg">読み込み中...</div>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script>
+    const msg = document.getElementById("msg");
+
+    if (!window.THREE) {
+      msg.textContent = "Three.js の読み込みに失敗しました。ネット接続かCDNを確認してください。";
+      throw new Error("THREE is not loaded");
+    }
+
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xffffff);
-    scene.fog = new THREE.Fog(0xffffff, 20, 60);
+    scene.background = new THREE.Color(0xf7f7f7);
 
     const camera = new THREE.PerspectiveCamera(
       60,
@@ -35,33 +49,37 @@
       1000
     );
     camera.position.set(4, 3, 6);
+    camera.lookAt(0, 1, 0);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
     renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio || 1);
     renderer.shadowMap.enabled = true;
     document.body.appendChild(renderer.domElement);
 
-    const controls = new THREE.OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
+    // 光
+    const ambient = new THREE.AmbientLight(0xffffff, 1.5);
+    scene.add(ambient);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.6);
-    scene.add(ambientLight);
+    const dir = new THREE.DirectionalLight(0xffffff, 1.2);
+    dir.position.set(5, 10, 7);
+    dir.castShadow = true;
+    scene.add(dir);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
-    directionalLight.position.set(5, 10, 7);
-    directionalLight.castShadow = true;
-    scene.add(directionalLight);
+    const hemi = new THREE.HemisphereLight(0xffffff, 0xe6e6e6, 0.8);
+    scene.add(hemi);
 
-    // 白い床
-    const floorGeo = new THREE.PlaneGeometry(40, 40);
-    const floorMat = new THREE.MeshStandardMaterial({ color: 0xf5f5f5 });
-    const floor = new THREE.Mesh(floorGeo, floorMat);
+    // 床
+    const floor = new THREE.Mesh(
+      new THREE.PlaneGeometry(40, 40),
+      new THREE.MeshStandardMaterial({ color: 0xededed, roughness: 1 })
+    );
     floor.rotation.x = -Math.PI / 2;
     floor.receiveShadow = true;
     scene.add(floor);
 
-    // 白い壁
-    const wallMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+    // 壁（うっすら見えるように少しだけ色を変える）
+    const wallMat = new THREE.MeshStandardMaterial({ color: 0xfdfdfd, roughness: 1 });
 
     const backWall = new THREE.Mesh(new THREE.PlaneGeometry(40, 15), wallMat);
     backWall.position.set(0, 7.5, -20);
@@ -78,52 +96,36 @@
     scene.add(rightWall);
 
     const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), wallMat);
-    ceiling.rotation.x = Math.PI / 2;
     ceiling.position.y = 15;
+    ceiling.rotation.x = Math.PI / 2;
     scene.add(ceiling);
 
-    // POLO.fbx 読み込み
-    const loader = new THREE.FBXLoader();
-    let poloModel = null;
-
-    loader.load(
-      'POLO.fbx',
-      (object) => {
-        poloModel = object;
-
-        object.traverse((child) => {
-          if (child.isMesh) {
-            child.castShadow = true;
-            child.receiveShadow = true;
-            if (child.material) {
-              child.material.flatShading = false;
-            }
-          }
-        });
-
-        // 大きさ調整
-        object.scale.setScalar(0.01);
-
-        // 中央に配置
-        object.position.set(0, 0, 0);
-        object.rotation.y = Math.PI;
-
-        scene.add(object);
-      },
-      undefined,
-      (error) => {
-        console.error('POLO.fbx の読み込みに失敗しました:', error);
-      }
+    // 赤い箱
+    const box = new THREE.Mesh(
+      new THREE.BoxGeometry(1.5, 1.5, 1.5),
+      new THREE.MeshStandardMaterial({
+        color: 0xff0000,
+        roughness: 0.45,
+        metalness: 0.08,
+        emissive: 0x220000,
+        emissiveIntensity: 0.25
+      })
     );
+    box.position.set(0, 0.75, 0);
+    box.castShadow = true;
+    scene.add(box);
+
+    // 見え方確認用の薄い床ライン
+    const grid = new THREE.GridHelper(40, 40, 0xdddddd, 0xe9e9e9);
+    grid.position.y = 0.001;
+    scene.add(grid);
+
+    msg.textContent = "表示中";
 
     function animate() {
       requestAnimationFrame(animate);
-
-      if (poloModel) {
-        poloModel.rotation.y += 0.01;
-      }
-
-      controls.update();
+      box.rotation.y += 0.01;
+      box.rotation.x += 0.005;
       renderer.render(scene, camera);
     }
     animate();
