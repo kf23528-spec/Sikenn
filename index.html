@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>白い空間の赤い箱</title>
+  <title>白い空間のPOLO.fbx</title>
   <style>
     html, body {
       margin: 0;
@@ -21,6 +21,7 @@
 <body>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/loaders/FBXLoader.js"></script>
 
   <script>
     const scene = new THREE.Scene();
@@ -81,22 +82,47 @@
     ceiling.position.y = 15;
     scene.add(ceiling);
 
-    // 赤い箱
-    const boxGeo = new THREE.BoxGeometry(1.5, 1.5, 1.5);
-    const boxMat = new THREE.MeshStandardMaterial({
-      color: 0xff0000,
-      roughness: 0.5,
-      metalness: 0.1
-    });
-    const redBox = new THREE.Mesh(boxGeo, boxMat);
-    redBox.castShadow = true;
-    redBox.position.y = 0.75;
-    scene.add(redBox);
+    // POLO.fbx 読み込み
+    const loader = new THREE.FBXLoader();
+    let poloModel = null;
+
+    loader.load(
+      'POLO.fbx',
+      (object) => {
+        poloModel = object;
+
+        object.traverse((child) => {
+          if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+            if (child.material) {
+              child.material.flatShading = false;
+            }
+          }
+        });
+
+        // 大きさ調整
+        object.scale.setScalar(0.01);
+
+        // 中央に配置
+        object.position.set(0, 0, 0);
+        object.rotation.y = Math.PI;
+
+        scene.add(object);
+      },
+      undefined,
+      (error) => {
+        console.error('POLO.fbx の読み込みに失敗しました:', error);
+      }
+    );
 
     function animate() {
       requestAnimationFrame(animate);
-      redBox.rotation.y += 0.01;
-      redBox.rotation.x += 0.005;
+
+      if (poloModel) {
+        poloModel.rotation.y += 0.01;
+      }
+
       controls.update();
       renderer.render(scene, camera);
     }
