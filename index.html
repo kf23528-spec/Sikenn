@@ -163,12 +163,40 @@
     const loadingText = document.getElementById('loadingText');
     const barFill = document.getElementById('barFill');
 
+    let failureBox = null;
+
     function showLoadingFailure(message) {
       console.error('POLO.fbx load failed:', message);
-      loadingEl.classList.remove('hide');
+      loadingEl.classList.add('hide');
       loadingText.textContent = `失敗: ${message}`;
       barFill.style.width = '100%';
       barFill.style.background = 'linear-gradient(90deg, #ff6b6b, #ff9f43)';
+
+      if (!failureBox) {
+        const boxGeo = new THREE.BoxGeometry(1.8, 1.8, 1.8);
+        const boxMat = new THREE.MeshStandardMaterial({ color: 0xff2222, roughness: 0.7, metalness: 0.1 });
+        failureBox = new THREE.Mesh(boxGeo, boxMat);
+        failureBox.position.set(0, 1, 0);
+        failureBox.castShadow = true;
+        failureBox.receiveShadow = true;
+        scene.add(failureBox);
+      }
+
+      const label = document.createElement('div');
+      label.style.position = 'absolute';
+      label.style.left = '50%';
+      label.style.top = '18px';
+      label.style.transform = 'translateX(-50%)';
+      label.style.padding = '10px 14px';
+      label.style.borderRadius = '14px';
+      label.style.background = 'rgba(60, 0, 0, 0.72)';
+      label.style.color = '#fff';
+      label.style.fontWeight = '700';
+      label.style.zIndex = '30';
+      label.textContent = `失敗: ${message}`;
+      document.body.appendChild(label);
+
+      setTimeout(() => label.remove(), 5000);
     }
 
     function friendlyError(err) {
