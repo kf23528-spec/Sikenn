@@ -3,295 +3,865 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>polo.fbx Viewer</title>
-
-  <!--
-    ★ 修正ポイント①
-    importmap で 'three' という裸のモジュール名を CDN URL に紐づける。
-    FBXLoader / OrbitControls の内部 import も全てここで解決される。
-  -->
-  <script type="importmap">
-  {
-    "imports": {
-      "three":                          "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js",
-      "three/examples/jsm/loaders/FBXLoader.js":    "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/loaders/FBXLoader.js",
-      "three/examples/jsm/controls/OrbitControls.js":"https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/controls/OrbitControls.js",
-      "three/examples/jsm/libs/fflate.module.min.js":"https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/libs/fflate.module.min.js"
-    }
-  }
-  </script>
-
+  <title>Gacha Reveal</title>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      background: #0d0f14;
-      color: #c8cdd8;
-      font-family: 'Courier New', monospace;
-      overflow: hidden;
-      height: 100vh;
+    :root{
+      --bg0:#050816;
+      --bg1:#0b1120;
+      --panel:rgba(12,18,36,.78);
+      --line:rgba(255,255,255,.10);
+      --text:#eaf1ff;
+      --muted:#a9b7d6;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(circle at 20% 10%, rgba(59,130,246,.20), transparent 30%),
+        radial-gradient(circle at 80% 20%, rgba(168,85,247,.16), transparent 28%),
+        radial-gradient(circle at 50% 100%, rgba(16,185,129,.10), transparent 35%),
+        linear-gradient(180deg,var(--bg0),var(--bg1));
+      overflow-x:hidden;
+    }
+    .wrap{
+      width:min(1280px,100%);
+      margin:0 auto;
+      padding:20px;
+      display:grid;
+      grid-template-columns:1.2fr .8fr;
+      gap:18px;
+    }
+    .card{
+      background:linear-gradient(180deg,var(--panel),rgba(7,12,24,.92));
+      border:1px solid var(--line);
+      border-radius:26px;
+      box-shadow:0 24px 80px rgba(0,0,0,.38);
+      backdrop-filter:blur(12px);
+      overflow:hidden;
+    }
+    .main{padding:22px}
+    .side{padding:22px}
+    .top{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:14px;
+      margin-bottom:16px;
+    }
+    h1{
+      margin:0;
+      font-size:clamp(28px,4vw,46px);
+      line-height:1.05;
+      letter-spacing:.04em;
+    }
+    .sub{
+      margin-top:8px;
+      color:var(--muted);
+      font-size:14px;
+      line-height:1.7;
+    }
+    .badge{
+      padding:10px 14px;
+      border-radius:999px;
+      background:rgba(125,211,252,.10);
+      border:1px solid rgba(125,211,252,.22);
+      color:#d8f4ff;
+      font-size:13px;
+      white-space:nowrap;
+      height:fit-content;
     }
 
-    #canvas-container { position: fixed; inset: 0; }
-
-    /* HUD */
-    #hud {
-      position: fixed;
-      top: 16px;
-      left: 20px;
-      z-index: 10;
-      pointer-events: none;
+    .stage{
+      position:relative;
+      min-height:460px;
+      border-radius:28px;
+      background:
+        radial-gradient(circle at 50% 20%, rgba(255,255,255,.09), transparent 32%),
+        linear-gradient(180deg, rgba(15,22,44,.98), rgba(5,9,18,.98));
+      border:1px solid rgba(255,255,255,.08);
+      overflow:hidden;
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.03);
     }
-    #hud h1 {
-      font-size: 11px;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: #4a7fa5;
-      margin-bottom: 4px;
+    .stage::before{
+      content:"";
+      position:absolute;
+      inset:-20%;
+      background:
+        radial-gradient(circle at 35% 35%, rgba(59,130,246,.16), transparent 16%),
+        radial-gradient(circle at 65% 60%, rgba(168,85,247,.14), transparent 18%),
+        radial-gradient(circle at 50% 50%, rgba(255,255,255,.06), transparent 26%);
+      filter:blur(18px);
+      animation:drift 16s linear infinite;
+      pointer-events:none;
     }
-    #anim-label { font-size: 13px; color: #7ec8a0; }
-
-    /* ローディング／エラー オーバーレイ */
-    #overlay {
-      position: fixed;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 20;
-      background: #0d0f14;
-      transition: opacity 0.5s;
+    @keyframes drift{
+      0%{transform:translate3d(0,0,0) scale(1)}
+      50%{transform:translate3d(18px,-10px,0) scale(1.04)}
+      100%{transform:translate3d(0,0,0) scale(1)}
     }
-    #overlay.hidden { opacity: 0; pointer-events: none; }
 
-    .spinner {
-      width: 48px;
-      height: 48px;
-      border: 3px solid #1e2530;
-      border-top-color: #4a7fa5;
-      border-radius: 50%;
-      animation: spin 0.9s linear infinite;
-      margin-bottom: 20px;
+    .videoWrap{
+      position:absolute;
+      inset:0;
+      display:grid;
+      place-items:center;
+      overflow:hidden;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    #status-text { font-size: 12px; letter-spacing: 0.15em; color: #6b7585; }
-
-    /* エラー表示 */
-    #error-box {
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-      text-align: center;
+    video{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      opacity:.98;
+      transform:scale(1.03);
+      filter:saturate(1.1) contrast(1.08);
     }
-    #error-box .error-icon  { font-size: 36px; line-height: 1; }
-    #error-box .error-title { font-size: 14px; color: #c0504d; letter-spacing: 0.12em; }
-    #error-box .error-msg   { font-size: 11px; color: #6b7585; max-width: 360px; line-height: 1.7; }
+    .vfx{
+      position:absolute;
+      inset:0;
+      background:
+        linear-gradient(180deg, rgba(0,0,0,.12), rgba(0,0,0,.44)),
+        radial-gradient(circle at center, rgba(255,255,255,.10), transparent 28%);
+      pointer-events:none;
+      mix-blend-mode:screen;
+    }
+    .flash{
+      position:absolute;
+      inset:0;
+      opacity:0;
+      pointer-events:none;
+      background:radial-gradient(circle at center, rgba(255,255,255,.92), rgba(255,255,255,.26) 18%, rgba(255,255,255,0) 45%);
+    }
+    .flash.on{animation:flash .55s ease}
+    @keyframes flash{
+      0%{opacity:0;transform:scale(.92)}
+      18%{opacity:.95;transform:scale(1)}
+      100%{opacity:0;transform:scale(1.12)}
+    }
+
+    .reel{
+      position:absolute;
+      left:16px;
+      right:16px;
+      bottom:16px;
+      display:grid;
+      grid-template-columns:1fr;
+      gap:12px;
+      z-index:5;
+    }
+    .current{
+      display:grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap:14px;
+      align-items:stretch;
+      min-height:230px;
+      padding:16px;
+      border-radius:24px;
+      background:rgba(8,12,24,.72);
+      border:1px solid rgba(255,255,255,.09);
+      box-shadow:0 16px 50px rgba(0,0,0,.24);
+      backdrop-filter:blur(10px);
+      transform:translateY(0) scale(1);
+      transition:transform .18s ease, filter .18s ease;
+    }
+    .current.pop{
+      transform:translateY(-4px) scale(1.01);
+      filter:brightness(1.12) saturate(1.12);
+    }
+    .portrait{
+      position:relative;
+      border-radius:22px;
+      overflow:hidden;
+      background:
+        radial-gradient(circle at 30% 20%, rgba(255,255,255,.22), transparent 18%),
+        linear-gradient(135deg, var(--c1), var(--c2));
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.10);
+      min-height:198px;
+    }
+    .portrait::before{
+      content:"";
+      position:absolute;
+      inset:12%;
+      border-radius:50%;
+      background:
+        radial-gradient(circle at 50% 40%, rgba(255,255,255,.95), rgba(255,255,255,.15) 18%, transparent 19%),
+        radial-gradient(circle at 50% 54%, rgba(10,14,28,.9) 0 18%, transparent 19%),
+        radial-gradient(circle at 50% 83%, rgba(10,14,28,.85) 0 21%, transparent 22%);
+      opacity:.95;
+      filter:drop-shadow(0 0 18px rgba(255,255,255,.18));
+      transform:scale(1.02);
+    }
+    .portrait::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:
+        linear-gradient(180deg, transparent 0 55%, rgba(0,0,0,.24) 100%);
+    }
+    .portrait .sigil{
+      position:absolute;
+      left:16px;
+      top:16px;
+      font-size:38px;
+      opacity:.92;
+      text-shadow:0 0 18px rgba(255,255,255,.18);
+    }
+
+    .info{
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      gap:10px;
+      padding:4px 2px 2px;
+    }
+    .rarity{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      width:fit-content;
+      min-width:130px;
+      padding:8px 14px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:.14em;
+      box-shadow:0 12px 22px rgba(0,0,0,.18);
+    }
+    .name{
+      font-size:clamp(24px,3vw,36px);
+      font-weight:900;
+      line-height:1.08;
+      margin:6px 0 8px;
+    }
+    .title{
+      color:var(--muted);
+      font-size:14px;
+      line-height:1.7;
+      min-height:48px;
+    }
+    .chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+    }
+    .chip{
+      padding:8px 11px;
+      border-radius:999px;
+      background:rgba(255,255,255,.07);
+      border:1px solid rgba(255,255,255,.08);
+      font-size:12px;
+      color:#eaf1ff;
+    }
+
+    .tenGrid{
+      display:grid;
+      grid-template-columns:repeat(5,1fr);
+      gap:10px;
+    }
+    .slot{
+      position:relative;
+      min-height:90px;
+      border-radius:16px;
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.05);
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.03);
+      opacity:.35;
+      transform:translateY(4px);
+      transition:opacity .18s ease, transform .18s ease, filter .18s ease;
+    }
+    .slot.filled{
+      opacity:1;
+      transform:translateY(0);
+      filter:saturate(1.08);
+    }
+    .slot .mini{
+      position:absolute;
+      inset:0;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      padding:10px;
+      background:linear-gradient(135deg,var(--c1),var(--c2));
+    }
+    .slot .mini strong{
+      font-size:12px;
+      letter-spacing:.08em;
+    }
+    .slot .mini span{
+      font-size:12px;
+      color:rgba(255,255,255,.9);
+      font-weight:700;
+    }
+
+    .controls{
+      display:flex;
+      flex-wrap:wrap;
+      gap:12px;
+      justify-content:center;
+      margin-top:14px;
+    }
+    button{
+      border:none;
+      cursor:pointer;
+      border-radius:16px;
+      padding:14px 20px;
+      min-width:150px;
+      font-size:16px;
+      font-weight:800;
+      color:white;
+      transition:transform .15s ease, filter .15s ease, opacity .15s ease;
+      box-shadow:0 12px 22px rgba(0,0,0,.18);
+    }
+    button:hover{transform:translateY(-1px);filter:brightness(1.08)}
+    button:active{transform:translateY(1px)}
+    button:disabled{opacity:.55;cursor:not-allowed;transform:none}
+    .btn1{background:linear-gradient(180deg,#2563eb,#1d4ed8)}
+    .btn2{background:linear-gradient(180deg,#7c3aed,#6d28d9)}
+    .btn3{background:linear-gradient(180deg,#059669,#047857)}
+    .btn4{background:linear-gradient(180deg,#ef4444,#b91c1c)}
+
+    .panel{
+      margin-top:16px;
+      padding:16px;
+      border-radius:20px;
+      background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.07);
+    }
+    .panel h2{
+      margin:0 0 12px;
+      font-size:18px;
+    }
+
+    .stats{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px;
+      margin-bottom:16px;
+    }
+    .stat{
+      padding:14px;
+      border-radius:18px;
+      background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.07);
+    }
+    .label{color:var(--muted);font-size:12px;margin-bottom:6px}
+    .value{font-size:24px;font-weight:900}
+
+    .probList{
+      display:grid;
+      gap:8px;
+      max-height:360px;
+      overflow:auto;
+      padding-right:6px;
+    }
+    .probRow{
+      border-radius:14px;
+      background:rgba(8,12,24,.52);
+      border:1px solid rgba(255,255,255,.06);
+      padding:10px 12px;
+    }
+    .probTop{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:center;
+      font-size:14px;
+      font-weight:700;
+    }
+    .bar{
+      margin-top:8px;
+      height:8px;
+      border-radius:999px;
+      background:rgba(255,255,255,.08);
+      overflow:hidden;
+    }
+    .fill{
+      height:100%;
+      border-radius:999px;
+      background:linear-gradient(90deg, rgba(125,211,252,.95), rgba(168,85,247,.95));
+    }
+    .note{
+      margin-top:12px;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.7;
+    }
+
+    .history{
+      display:grid;
+      gap:10px;
+      max-height:240px;
+      overflow:auto;
+      padding-right:6px;
+    }
+    .histItem{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      align-items:center;
+      padding:12px 14px;
+      border-radius:14px;
+      background:rgba(8,12,24,.52);
+      border:1px solid rgba(255,255,255,.06);
+      font-size:14px;
+    }
+    .histItem small{color:var(--muted)}
+
+    .overlayText{
+      position:absolute;
+      left:50%;
+      top:22px;
+      transform:translateX(-50%);
+      z-index:6;
+      padding:10px 16px;
+      border-radius:999px;
+      background:rgba(255,255,255,.07);
+      border:1px solid rgba(255,255,255,.10);
+      backdrop-filter:blur(10px);
+      font-size:13px;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      display:none;
+    }
+    .overlayText.show{display:block}
+    .badgeGlow{
+      position:absolute;
+      inset:auto 10% 8px;
+      height:2px;
+      border-radius:999px;
+      background:linear-gradient(90deg, transparent, rgba(255,255,255,.85), transparent);
+      opacity:.5;
+      pointer-events:none;
+    }
+
+    .r-common{background:#6b7280;color:white}
+    .r-uncommon{background:#10b981;color:white}
+    .r-rare{background:#3b82f6;color:white}
+    .r-sr{background:#8b5cf6;color:white}
+    .r-epic{background:#ec4899;color:white}
+    .r-ultra{background:#f59e0b;color:#111827}
+    .r-legend{background:#ef4444;color:white}
+    .r-mythic{
+      background:linear-gradient(90deg,#fb7185,#f59e0b,#facc15);
+      color:#111827;
+    }
+    .r-ancient{
+      background:linear-gradient(90deg,#22c55e,#06b6d4,#8b5cf6);
+      color:white;
+    }
+    .r-divine{
+      background:linear-gradient(90deg,#e879f9,#93c5fd,#fda4af);
+      color:#111827;
+    }
+    .r-celestial{
+      background:linear-gradient(90deg,#ffffff,#93c5fd,#38bdf8);
+      color:#111827;
+    }
+    .r-omega{
+      background:linear-gradient(90deg,#111827,#7c3aed,#0ea5e9);
+      color:white;
+    }
+    .r-genesis{
+      background:linear-gradient(90deg,#f97316,#facc15,#22c55e,#38bdf8,#a855f7);
+      color:#111827;
+    }
+
+    @media (max-width: 980px){
+      .wrap{grid-template-columns:1fr}
+    }
+    @media (max-width: 640px){
+      .main,.side{padding:16px}
+      .top{flex-direction:column}
+      .stats{grid-template-columns:1fr}
+      .current{grid-template-columns:1fr}
+      .tenGrid{grid-template-columns:repeat(2,1fr)}
+      button{width:100%}
+      .stage{min-height:760px}
+    }
   </style>
 </head>
 <body>
+  <div class="wrap">
+    <section class="card main">
+      <div class="top">
+        <div>
+          <h1>動画演出ガチャ</h1>
+          <div class="sub">
+            1回は動画フル再生 → キャラ出現。<br>
+            10連はモンストっぽく1体ずつ順番に出す構成。
+          </div>
+        </div>
+        <div class="badge">動画を使った本番向け</div>
+      </div>
 
-<div id="canvas-container"></div>
+      <div class="stage" id="stage">
+        <div class="videoWrap">
+          <video id="gachaVideo" src="gacha.mp4" playsinline preload="auto"></video>
+          <div class="vfx"></div>
+          <div class="flash" id="flash"></div>
+        </div>
 
-<!-- HUD -->
-<div id="hud">
-  <h1>polo.fbx</h1>
-  <div id="anim-label">— アニメーションなし —</div>
-</div>
+        <div class="overlayText" id="overlayText">SUMMON</div>
 
-<!-- ローディング／エラー オーバーレイ -->
-<div id="overlay">
-  <div id="loading-box">
-    <div class="spinner"></div>
-    <div id="status-text">polo.fbx を読み込み中...</div>
+        <div class="reel">
+          <div class="current" id="currentCard">
+            <div class="portrait" id="portrait">
+              <div class="sigil" id="sigil">✦</div>
+            </div>
+            <div class="info">
+              <div>
+                <div class="rarity r-common" id="rarityBadge">COMMON</div>
+                <div class="name" id="charName">ガチャを引こう</div>
+                <div class="title" id="charTitle">動画が終わるとキャラが出る。</div>
+              </div>
+              <div class="chips" id="chips"></div>
+            </div>
+          </div>
+
+          <div class="tenGrid" id="tenGrid"></div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button class="btn1" id="pull1">1回引く</button>
+        <button class="btn2" id="pull10">10連</button>
+        <button class="btn3" id="demo">演出テスト</button>
+        <button class="btn4" id="reset">リセット</button>
+      </div>
+
+      <div class="panel">
+        <h2>履歴</h2>
+        <div class="history" id="history"></div>
+      </div>
+    </section>
+
+    <aside class="card side">
+      <div class="stats">
+        <div class="stat">
+          <div class="label">総回数</div>
+          <div class="value" id="totalCount">0</div>
+        </div>
+        <div class="stat">
+          <div class="label">最高レア</div>
+          <div class="value" id="bestRarity">-</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>レアリティ確率</h2>
+        <div class="probList" id="probList"></div>
+        <div class="note">
+          上位5段階をかなり渋くした構成。<br>
+          合計100%に調整済み。
+        </div>
+      </div>
+    </aside>
   </div>
-  <div id="error-box">
-    <div class="error-icon">⚠</div>
-    <div class="error-title">読み込みに失敗しました</div>
-    <div class="error-msg" id="error-detail"></div>
-  </div>
-</div>
 
-<!--
-  ★ 修正ポイント②
-  <script src> によるグローバル読み込みを廃止し、
-  全て type="module" + importmap で統一する。
--->
-<script type="module">
-  import * as THREE from 'three';
-  import { FBXLoader }     from 'three/examples/jsm/loaders/FBXLoader.js';
-  import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+  <script>
+    const rarities = [
+      { key:"common",    label:"COMMON",    rate:44,    cls:"r-common",    c1:"#6b7280", c2:"#374151", sigil:"◼", desc:"基本枠。",       chips:["Ground","Basic"],       titles:["木の剣士","旅する少年","石の守護者","練習兵"] },
+      { key:"uncommon",  label:"UNCOMMON",  rate:24,    cls:"r-uncommon",  c1:"#10b981", c2:"#0f766e", sigil:"◆", desc:"少し嬉しい枠。", chips:["Wind","Assist"],       titles:["風刃の使い手","翠のレンジャー","回復術師","機動型"] },
+      { key:"rare",      label:"RARE",      rate:15,    cls:"r-rare",      c1:"#3b82f6", c2:"#1d4ed8", sigil:"✦", desc:"当たり感が出る。", chips:["Water","Slash"],       titles:["蒼炎の剣士","蒼晶の魔導師","銀鍵の追跡者","夜空の戦士"] },
+      { key:"sr",        label:"SUPER RARE",rate:8,     cls:"r-sr",        c1:"#8b5cf6", c2:"#6d28d9", sigil:"✧", desc:"かなり嬉しい。",   chips:["Storm","Burst"],       titles:["雷鳴の槍兵","星屑の射手","時砂の賢者","紫電の護衛"] },
+      { key:"epic",      label:"EPIC",      rate:4.5,   cls:"r-epic",      c1:"#ec4899", c2:"#be185d", sigil:"❖", desc:"かなり熱い。",     chips:["Flare","Magic"],       titles:["紅蓮の大剣士","月光の術者","薔薇の聖印官","幻影の舞姫"] },
+      { key:"ultra",     label:"ULTRA RARE",rate:2.5,   cls:"r-ultra",     c1:"#f59e0b", c2:"#d97706", sigil:"✪", desc:"低確率の熱枠。",    chips:["Gold","Core"],         titles:["黄金核の王","灼熱の守護者","古龍の鱗騎士","虚空の狩人"] },
+      { key:"legend",    label:"LEGEND",    rate:1.2,   cls:"r-legend",    c1:"#ef4444", c2:"#991b1b", sigil:"♛", desc:"出たら強い。",     chips:["Legend","Rare"],       titles:["伝説の聖剣使い","神々の冠姫","世界樹の継承者","英雄の証人"] },
+      { key:"mythic",    label:"MYTHIC",    rate:0.5,   cls:"r-mythic",    c1:"#fb7185", c2:"#f59e0b", sigil:"☄", desc:"かなり低い。",     chips:["Myth","Burst"],        titles:["創世の核を持つ者","星界の預言者","終焉と再生の鍵番","神話竜の契約者"] },
+      { key:"ancient",   label:"ANCIENT",   rate:0.2,   cls:"r-ancient",   c1:"#22c55e", c2:"#06b6d4", sigil:"⌘", desc:"古代級。",         chips:["Ancient","Relic"],     titles:["原初の遺物師","古神の写本官","始原の楔を抜く者","失われた碑文の守り手"] },
+      { key:"divine",    label:"DIVINE",    rate:0.07,  cls:"r-divine",    c1:"#e879f9", c2:"#93c5fd", sigil:"✿", desc:"神域の領域。",     chips:["Divine","Halo"],       titles:["神威の紋章姫","天啓の指輪騎士","聖域の灯火使い","無垢の翼の案内人"] },
+      { key:"celestial", label:"CELESTIAL", rate:0.02,  cls:"r-celestial", c1:"#ffffff", c2:"#38bdf8", sigil:"✺", desc:"天体級。",         chips:["Celestial","Sky"],     titles:["星海の王笏者","銀河の雫の巫女","天球の鍵守り","惑星核の使徒"] },
+      { key:"omega",     label:"OMEGA",     rate:0.005, cls:"r-omega",     c1:"#111827", c2:"#7c3aed", sigil:"Ω", desc:"ほぼ見ない。",     chips:["Omega","Void"],        titles:["終末刻印の継承者","無限符号の執行者","虚無の王冠保持者","暗黒星の刃主"] },
+      { key:"genesis",   label:"GENESIS",   rate:0.005, cls:"r-genesis",   c1:"#f97316", c2:"#a855f7", sigil:"◎", desc:"最上位。",         chips:["Genesis","Origin"],    titles:["創世の核心者","万象の鍵番","原初の光を宿す者","ゼロアークの主"] }
+    ];
 
-  /* ─────────────────────────────────────────
-      DOM refs
-  ───────────────────────────────────────── */
-  const overlay     = document.getElementById('overlay');
-  const loadingBox  = document.getElementById('loading-box');
-  const errorBox    = document.getElementById('error-box');
-  const errorDetail = document.getElementById('error-detail');
-  const statusText  = document.getElementById('status-text');
-  const animLabel   = document.getElementById('anim-label');
+    const totalRate = rarities.reduce((a,r)=>a+r.rate,0);
 
-  /* ─────────────────────────────────────────
-      エラー表示ヘルパー（既存のエラー処理を維持）
-  ───────────────────────────────────────── */
-  function showError(message) {
-    loadingBox.style.display = 'none';
-    errorBox.style.display   = 'flex';
-    errorDetail.textContent  = message;
-    overlay.classList.remove('hidden');
-  }
+    const video = document.getElementById("gachaVideo");
+    const flash = document.getElementById("flash");
+    const overlayText = document.getElementById("overlayText");
+    const currentCard = document.getElementById("currentCard");
+    const portrait = document.getElementById("portrait");
+    const rarityBadge = document.getElementById("rarityBadge");
+    const charName = document.getElementById("charName");
+    const charTitle = document.getElementById("charTitle");
+    const chips = document.getElementById("chips");
+    const sigil = document.getElementById("sigil");
+    const tenGrid = document.getElementById("tenGrid");
+    const historyEl = document.getElementById("history");
+    const totalCountEl = document.getElementById("totalCount");
+    const bestRarityEl = document.getElementById("bestRarity");
+    const probList = document.getElementById("probList");
 
-  /* ─────────────────────────────────────────
-      Three.js セットアップ
-  ───────────────────────────────────────── */
-  const container = document.getElementById('canvas-container');
+    const btn1 = document.getElementById("pull1");
+    const btn10 = document.getElementById("pull10");
+    const btnDemo = document.getElementById("demo");
+    const btnReset = document.getElementById("reset");
 
-  const renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setPixelRatio(window.devicePixelRatio);
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type    = THREE.PCFSoftShadowMap;
-  renderer.outputEncoding    = THREE.sRGBEncoding;
-  container.appendChild(renderer.domElement);
+    let total = 0;
+    let bestIndex = -1;
+    let locked = false;
 
-  const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x0d0f14);
-  scene.fog        = new THREE.Fog(0x0d0f14, 20, 80);
+    const wait = (ms) => new Promise(r => setTimeout(r, ms));
 
-  const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 500);
-  camera.position.set(0, 2, 6);
-
-  const controls = new OrbitControls(camera, renderer.domElement);
-  controls.target.set(0, 1, 0);
-  controls.enableDamping = true;
-  controls.dampingFactor = 0.08;
-  controls.update();
-
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-  scene.add(ambientLight);
-
-  const dirLight = new THREE.DirectionalLight(0xd0e8ff, 1.2);
-  dirLight.position.set(5, 10, 7);
-  dirLight.castShadow         = true;
-  dirLight.shadow.mapSize.set(2048, 2048);
-  dirLight.shadow.camera.near = 0.5;
-  dirLight.shadow.camera.far  = 60;
-  scene.add(dirLight);
-
-  const fillLight = new THREE.PointLight(0x4a7fa5, 0.6, 30);
-  fillLight.position.set(-4, 3, -4);
-  scene.add(fillLight);
-
-  const grid = new THREE.GridHelper(20, 40, 0x1e2530, 0x1e2530);
-  scene.add(grid);
-
-  /* ─────────────────────────────────────────
-      AnimationMixer（アニメーション管理）
-  ───────────────────────────────────────── */
-  let mixer  = null;
-  let action = null;
-  const clock = new THREE.Clock();
-
-  /* ─────────────────────────────────────────
-      FBX 読み込み
-  ───────────────────────────────────────── */
-  const loader = new FBXLoader();
-
-  loader.load(
-    'polo.fbx',
-
-    /* ── onLoad ── */
-    (fbx) => {
-      fbx.scale.setScalar(0.01);
-
-      fbx.traverse((child) => {
-        if (child.isMesh) {
-          child.castShadow    = true;
-          child.receiveShadow = true;
-        }
+    function buildProbUI(){
+      probList.innerHTML = "";
+      rarities.forEach(r => {
+        const row = document.createElement("div");
+        row.className = "probRow";
+        row.innerHTML = `
+          <div class="probTop">
+            <div>${r.label}</div>
+            <div>${r.rate}%</div>
+          </div>
+          <div class="bar"><div class="fill" style="width:${Math.max(r.rate*3.4,1)}%"></div></div>
+        `;
+        probList.appendChild(row);
       });
-
-      scene.add(fbx);
-
-      /* ── アニメーション設定 ───────────────────
-          AnimationMixer を作成し、
-          clips[0]（最初のアニメーション）をループ再生する
-      ─────────────────────────────────────── */
-      const clips = fbx.animations;
-
-      if (clips && clips.length > 0) {
-        mixer  = new THREE.AnimationMixer(fbx);
-        action = mixer.clipAction(clips[0]);
-
-        action.setLoop(THREE.LoopRepeat, Infinity);
-        action.clampWhenFinished = false;
-        action.play();
-
-        animLabel.textContent = `▶ ${clips[0].name || 'clip_0'}`;
-      } else {
-        animLabel.textContent = '— アニメーションなし —';
-      }
-
-      // カメラをモデルに合わせて調整
-      const box    = new THREE.Box3().setFromObject(fbx);
-      const size   = box.getSize(new THREE.Vector3());
-      const center = box.getCenter(new THREE.Vector3());
-      const maxDim = Math.max(size.x, size.y, size.z);
-
-      controls.target.copy(center);
-      camera.position.set(center.x, center.y + size.y * 0.5, center.z + maxDim * 2.5);
-      controls.update();
-
-      overlay.classList.add('hidden');
-    },
-
-    /* ── onProgress ── */
-    (xhr) => {
-      if (xhr.total > 0) {
-        const pct = Math.round((xhr.loaded / xhr.total) * 100);
-        statusText.textContent = `polo.fbx を読み込み中... ${pct}%`;
-      }
-    },
-
-    /* ── onError（既存のエラー処理を維持） ── */
-    (err) => {
-      console.error('FBXLoader error:', err);
-      showError(
-        'polo.fbx の読み込みに失敗しました。\n\n' +
-        'ファイルがこのHTMLと同じディレクトリに存在するか確認してください。\n' +
-        'ローカルで開く場合は、ローカルサーバー経由でアクセスしてください。\n\n' +
-        `詳細: ${err?.message ?? err}`
-      );
     }
-  );
 
-  /* ─────────────────────────────────────────
-      レンダーループ
-  ───────────────────────────────────────── */
-  function animate() {
-    requestAnimationFrame(animate);
+    function pickRarity(){
+      const roll = Math.random() * totalRate;
+      let sum = 0;
+      for (const r of rarities){
+        sum += r.rate;
+        if (roll <= sum) return r;
+      }
+      return rarities[rarities.length - 1];
+    }
 
-    const delta = clock.getDelta();
+    function pickCharacter(rarity, final = false){
+      const namePool = ["ユイ","カイ","レナ","ソウマ","ミオ","レイ","カナ","シオン","アオイ","レン","ナギ","ハル","リク","ユナ","アキ","セラ","トウマ","ナオ","ルカ","ヒナ"];
+      const styleA = rarity.titles[(Math.random() * rarity.titles.length) | 0];
+      const styleB = rarity.chips[(Math.random() * rarity.chips.length) | 0];
+      const id = Math.floor(Math.random() * namePool.length);
+      const name = `${namePool[id]}${final ? "・Ω" : ""}`;
+      return {
+        name,
+        title: styleA,
+        chip1: rarity.chips[(Math.random() * rarity.chips.length) | 0],
+        chip2: styleB,
+        sigil: rarity.sigil,
+        c1: rarity.c1,
+        c2: rarity.c2,
+        cls: rarity.cls,
+        label: rarity.label,
+        desc: rarity.desc
+      };
+    }
 
-    // AnimationMixer を毎フレーム更新（アニメーションの駆動）
-    if (mixer) mixer.update(delta);
+    function setCurrentCard(ch){
+      rarityBadge.className = `rarity ${ch.cls}`;
+      rarityBadge.textContent = ch.label;
+      rarityBadge.style.background = ch.cls.includes("genesis")
+        ? "linear-gradient(90deg,#f97316,#facc15,#22c55e,#38bdf8,#a855f7)"
+        : "";
+      rarityBadge.style.color = ch.cls === "r-ultra" ? "#111827" : (ch.cls === "r-divine" || ch.cls === "r-celestial" || ch.cls === "r-genesis" ? "#111827" : "white");
 
-    controls.update();
-    renderer.render(scene, camera);
-  }
-  animate();
+      charName.textContent = ch.name;
+      charTitle.textContent = ch.title;
 
-  /* ─────────────────────────────────────────
-      リサイズ対応
-  ───────────────────────────────────────── */
-  window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-  });
-</script>
+      chips.innerHTML = `
+        <div class="chip">${ch.chip1}</div>
+        <div class="chip">${ch.chip2}</div>
+      `;
+
+      sigil.textContent = ch.sigil;
+      portrait.style.setProperty("--c1", ch.c1);
+      portrait.style.setProperty("--c2", ch.c2);
+      currentCard.style.boxShadow = `0 16px 50px rgba(0,0,0,.24), 0 0 0 1px rgba(255,255,255,.06) inset, 0 0 42px ${ch.c2}`;
+      currentCard.classList.remove("pop");
+      void currentCard.offsetWidth;
+      currentCard.classList.add("pop");
+    }
+
+    function addHistory(ch){
+      const el = document.createElement("div");
+      el.className = "histItem";
+      el.innerHTML = `
+        <div><strong>${ch.label}</strong> / ${ch.name}</div>
+        <small>${new Date().toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit",second:"2-digit"})}</small>
+      `;
+      historyEl.prepend(el);
+      while (historyEl.children.length > 24) historyEl.removeChild(historyEl.lastChild);
+    }
+
+    function updateStats(rarityKey){
+      total++;
+      totalCountEl.textContent = total;
+      const idx = rarities.findIndex(r => r.key === rarityKey);
+      if (idx > bestIndex){
+        bestIndex = idx;
+        bestRarityEl.textContent = rarities[idx].label;
+      }
+    }
+
+    function pulseFlash(){
+      flash.classList.remove("on");
+      void flash.offsetWidth;
+      flash.classList.add("on");
+    }
+
+    function showOverlay(text){
+      overlayText.textContent = text;
+      overlayText.classList.add("show");
+      setTimeout(() => overlayText.classList.remove("show"), 700);
+    }
+
+    function fillSlot(slot, ch, index){
+      slot.classList.add("filled");
+      slot.innerHTML = `
+        <div class="mini" style="--c1:${ch.c1};--c2:${ch.c2};background:linear-gradient(135deg, ${ch.c1}, ${ch.c2});">
+          <strong>${index + 1}. ${ch.label}</strong>
+          <span>${ch.name}</span>
+        </div>
+      `;
+    }
+
+    function clearTenGrid(){
+      tenGrid.innerHTML = "";
+      for (let i = 0; i < 10; i++){
+        const s = document.createElement("div");
+        s.className = "slot";
+        tenGrid.appendChild(s);
+      }
+    }
+
+    function resetUI(){
+      total = 0;
+      bestIndex = -1;
+      totalCountEl.textContent = "0";
+      bestRarityEl.textContent = "-";
+      historyEl.innerHTML = "";
+      clearTenGrid();
+      setCurrentCard({
+        name:"ガチャを引こう",
+        title:"動画が終わるとキャラが出る。",
+        chip1:"Ready",
+        chip2:"Summon",
+        sigil:"✦",
+        c1:"#374151",
+        c2:"#1f2937",
+        cls:"r-common",
+        label:"COMMON",
+        desc:""
+      });
+    }
+
+    function lock(state){
+      locked = state;
+      btn1.disabled = state;
+      btn10.disabled = state;
+      btnDemo.disabled = state;
+    }
+
+    async function ensureVideoReady(){
+      if (video.readyState >= 1) return;
+      await new Promise(resolve => {
+        const onReady = () => {
+          video.removeEventListener("loadedmetadata", onReady);
+          resolve();
+        };
+        video.addEventListener("loadedmetadata", onReady);
+      });
+    }
+
+    async function playFullVideo(){
+      await ensureVideoReady();
+      video.currentTime = 0;
+      video.playbackRate = 1;
+      await video.play();
+      await new Promise(resolve => {
+        const done = () => {
+          video.removeEventListener("ended", done);
+          resolve();
+        };
+        video.addEventListener("ended", done);
+      });
+    }
+
+    async function playShortVideo(){
+      await ensureVideoReady();
+      video.currentTime = 0;
+      video.playbackRate = 1.15;
+      await video.play();
+
+      const clipEnd = Math.min(2.75, video.duration || 2.75);
+      await new Promise(resolve => {
+        const tick = () => {
+          if (video.currentTime >= clipEnd || video.ended) {
+            video.pause();
+            resolve();
+            return;
+          }
+          requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      });
+    }
+
+    async function revealOne({full = true, final = false} = {}){
+      showOverlay("SUMMON");
+      pulseFlash();
+      if (full) {
+        await playFullVideo();
+      } else {
+        await playShortVideo();
+      }
+      const rarity = pickRarity();
+      const ch = pickCharacter(rarity, final);
+      setCurrentCard(ch);
+      addHistory(ch);
+      updateStats(rarity.key);
+      pulseFlash();
+      return ch;
+    }
+
+    async function pullOne(){
+      if (locked) return;
+      lock(true);
+      await revealOne({full:true, final:false});
+      lock(false);
+    }
+
+    async function pullTen(){
+      if (locked) return;
+      lock(true);
+      clearTenGrid();
+      for (let i = 0; i < 10; i++){
+        showOverlay(i === 9 ? "FINAL" : "SUMMON");
+        const ch = await revealOne({full:false, final:i === 9});
+        const slot = tenGrid.children[i];
+        fillSlot(slot, ch, i);
+        await wait(i === 9 ? 260 : 220);
+      }
+      lock(false);
+    }
+
+    async function demo(){
+      if (locked) return;
+      lock(true);
+      await playFullVideo();
+      const rare = rarities[rarities.length - 1];
+      const ch = pickCharacter(rare, true);
+      setCurrentCard(ch);
+      addHistory(ch);
+      updateStats(rare.key);
+      pulseFlash();
+      lock(false);
+    }
+
+    btn1.addEventListener("click", pullOne);
+    btn10.addEventListener("click", pullTen);
+    btnDemo.addEventListener("click", demo);
+    btnReset.addEventListener("click", resetUI);
+
+    buildProbUI();
+    clearTenGrid();
+    resetUI();
+  </script>
 </body>
 </html>
