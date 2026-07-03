@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>キャラ召喚ガチャ</title>
+  <title>タップ切り替えガチャ</title>
   <style>
     :root{
       --bg0:#050816;
       --bg1:#09112b;
       --bg2:#101a3d;
-      --panel:rgba(10,16,38,.78);
+      --panel:rgba(10,16,38,.82);
       --line:rgba(255,255,255,.10);
       --text:#e8eefc;
       --muted:#9fb0d0;
@@ -28,11 +28,14 @@
       overflow-x:hidden;
     }
     #fx{
-      position:fixed; inset:0; width:100%; height:100%; pointer-events:none; z-index:30;
+      position:fixed; inset:0; width:100%; height:100%;
+      pointer-events:none; z-index:40;
     }
     .bg-grid{
       position:fixed; inset:0; pointer-events:none; opacity:.18; z-index:0;
-      background-image:linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px);
+      background-image:
+        linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px);
       background-size:44px 44px;
       mask-image:radial-gradient(circle at center, black 30%, transparent 95%);
     }
@@ -42,11 +45,11 @@
       margin:0 auto;
       padding:20px;
       display:grid;
-      grid-template-columns: 1.2fr .8fr;
+      grid-template-columns: 1.18fr .82fr;
       gap:18px;
     }
     .card{
-      background:linear-gradient(180deg,var(--panel),rgba(8,12,28,.90));
+      background:linear-gradient(180deg,var(--panel),rgba(8,12,28,.92));
       border:1px solid var(--line);
       border-radius:26px;
       box-shadow:0 24px 80px rgba(0,0,0,.38);
@@ -55,19 +58,37 @@
     }
     .main,.side{padding:22px}
     .topbar{
-      display:flex; justify-content:space-between; align-items:flex-start; gap:14px; margin-bottom:18px;
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:14px;
+      margin-bottom:18px;
     }
     h1{
-      margin:0; font-size:clamp(28px,4vw,46px); line-height:1.05; letter-spacing:.04em;
+      margin:0;
+      font-size:clamp(28px,4vw,46px);
+      line-height:1.05;
+      letter-spacing:.04em;
     }
-    .sub{margin-top:8px; color:var(--muted); line-height:1.65; font-size:14px;}
+    .sub{
+      margin-top:8px;
+      color:var(--muted);
+      line-height:1.65;
+      font-size:14px;
+    }
     .badge{
-      padding:10px 14px; border-radius:999px; white-space:nowrap;
-      background:rgba(125,211,252,.10); border:1px solid rgba(125,211,252,.22); color:#c9f0ff; font-size:13px;
+      padding:10px 14px;
+      border-radius:999px;
+      white-space:nowrap;
+      background:rgba(125,211,252,.10);
+      border:1px solid rgba(125,211,252,.22);
+      color:#c9f0ff;
+      font-size:13px;
     }
+
     .stage{
       position:relative;
-      min-height:420px;
+      min-height:520px;
       border-radius:28px;
       background:
         radial-gradient(circle at 50% 18%, rgba(255,255,255,.10), transparent 30%),
@@ -75,6 +96,8 @@
       border:1px solid rgba(255,255,255,.08);
       box-shadow: inset 0 0 0 1px rgba(255,255,255,.04), 0 20px 60px rgba(0,0,0,.34);
       overflow:hidden;
+      cursor:pointer;
+      user-select:none;
     }
     .stage::before{
       content:"";
@@ -91,125 +114,184 @@
       50%{transform:translate3d(20px,-10px,0) scale(1.05)}
       100%{transform:translate3d(0,0,0) scale(1)}
     }
+
     .video-overlay{
-      position:absolute; inset:0; display:grid; place-items:center; background:rgba(0,0,0,.10);
-      opacity:0; pointer-events:none; transition:opacity .18s ease; z-index:4;
+      position:absolute;
+      inset:0;
+      z-index:30;
+      opacity:0;
+      pointer-events:none;
+      transition:opacity .2s ease;
+      background:rgba(0,0,0,.20);
     }
-    .video-overlay.on{opacity:1; pointer-events:auto;}
-    .video-frame{
-      width:min(760px,92%);
-      aspect-ratio:16/9;
-      border-radius:22px;
-      overflow:hidden;
-      border:1px solid rgba(255,255,255,.12);
-      box-shadow:0 18px 60px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.04) inset;
-      background:#000;
-      position:relative;
-    }
-    .video-frame video{
-      width:100%; height:100%; display:block; object-fit:cover;
-    }
-    .skip-hint{
-      position:absolute; right:14px; bottom:12px;
-      padding:8px 10px; border-radius:999px; font-size:12px;
-      background:rgba(0,0,0,.52); border:1px solid rgba(255,255,255,.12); color:#fff;
-    }
-    .summon-shell{
-      position:absolute; inset:0; display:grid; place-items:center; z-index:2;
-      padding:18px;
-    }
-    .summon-core{
-      width:min(460px,88vw);
-      border-radius:30px;
-      background:rgba(6,10,22,.74);
-      border:1px solid rgba(255,255,255,.10);
-      box-shadow:0 18px 50px rgba(0,0,0,.26);
-      backdrop-filter: blur(10px);
-      overflow:hidden;
-      transform:translateY(0) scale(1);
-      transition:transform .2s ease, filter .2s ease;
-    }
-    .summon-core.pop{transform:translateY(-4px) scale(1.02); filter:brightness(1.10) saturate(1.08);}
-    .summon-head{
-      padding:16px 18px;
-      border-bottom:1px solid rgba(255,255,255,.08);
-      display:flex; justify-content:space-between; align-items:center; gap:12px;
-    }
-    .summon-title{font-weight:900; letter-spacing:.08em;}
-    .summon-count{color:var(--muted); font-size:12px;}
-    .character-portrait{
-      height:250px;
-      display:grid;
-      place-items:center;
-      position:relative;
-      overflow:hidden;
-      background:
-        radial-gradient(circle at center, rgba(125,211,252,.14), transparent 40%),
-        linear-gradient(180deg, rgba(11,16,38,.7), rgba(7,9,18,.95));
-    }
-    .character-portrait::before{
-      content:"";
-      position:absolute; inset:0;
-      background:radial-gradient(circle at 50% 60%, rgba(255,255,255,.10), transparent 35%);
-      opacity:.6;
-    }
-    .silhouette{
-      width:min(210px,42vw);
-      aspect-ratio:1;
-      border-radius:32px;
-      display:grid;
-      place-items:center;
-      text-align:center;
-      padding:18px;
-      border:1px solid rgba(255,255,255,.10);
-      background:
-        radial-gradient(circle at 30% 20%, rgba(255,255,255,.15), transparent 18%),
-        linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
-      box-shadow:0 0 45px rgba(125,211,252,.14);
-      transform:translateY(14px) scale(.95);
-      opacity:.18;
-      transition:transform .35s ease, opacity .35s ease, box-shadow .35s ease;
-      position:relative;
-    }
-    .silhouette.show{
-      transform:translateY(0) scale(1);
+    .video-overlay.on{
       opacity:1;
+      pointer-events:auto;
     }
-    .sigil{
-      position:absolute; inset:auto auto 10px 10px;
-      font-size:12px; color:rgba(255,255,255,.85);
-      padding:6px 10px; border-radius:999px;
-      background:rgba(0,0,0,.28);
-      border:1px solid rgba(255,255,255,.08);
+    .video-panel{
+      width:100%;
+      height:100%;
+      position:relative;
+      background:#000;
     }
-    .char-name{
-      font-size:clamp(22px,3vw,36px);
+    .video-panel video{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+    }
+    .video-text{
+      position:absolute;
+      left:18px;
+      top:18px;
+      padding:8px 12px;
+      border-radius:999px;
+      background:rgba(0,0,0,.52);
+      border:1px solid rgba(255,255,255,.12);
+      font-size:12px;
+      letter-spacing:.08em;
+    }
+    .skip{
+      position:absolute;
+      right:16px;
+      bottom:16px;
+      padding:8px 12px;
+      border-radius:999px;
+      background:rgba(0,0,0,.52);
+      border:1px solid rgba(255,255,255,.12);
+      font-size:12px;
+      color:#fff;
+    }
+
+    .result-shell{
+      position:absolute;
+      inset:0;
+      display:grid;
+      place-items:center;
+      z-index:6;
+      padding:18px;
+    }
+    .result-card{
+      width:min(760px, 96%);
+      border-radius:30px;
+      overflow:hidden;
+      background:rgba(6,10,22,.76);
+      border:1px solid rgba(255,255,255,.10);
+      box-shadow:0 22px 62px rgba(0,0,0,.32);
+      backdrop-filter: blur(12px);
+      transform:translateY(0) scale(1);
+      transition:transform .2s ease, filter .2s ease, opacity .2s ease;
+      position:relative;
+    }
+    .result-card.pop{
+      transform:translateY(-5px) scale(1.02);
+      filter:brightness(1.1) saturate(1.06);
+    }
+
+    .portrait-wrap{
+      position:relative;
+      height:360px;
+      background:
+        radial-gradient(circle at 50% 36%, rgba(255,255,255,.16), transparent 18%),
+        radial-gradient(circle at 50% 62%, rgba(125,211,252,.12), transparent 30%),
+        linear-gradient(180deg, rgba(12,18,40,.94), rgba(5,8,16,.98));
+      overflow:hidden;
+      border-bottom:1px solid rgba(255,255,255,.08);
+    }
+    .portrait-bg{
+      position:absolute;
+      inset:0;
+    }
+    .portrait-bg img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+      filter:saturate(1.05) contrast(1.03);
+    }
+    .portrait-glass{
+      position:absolute;
+      inset:0;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.03), transparent 25%),
+        radial-gradient(circle at 50% 70%, rgba(255,255,255,.08), transparent 30%);
+      mix-blend-mode:screen;
+      pointer-events:none;
+    }
+    .tap-hint{
+      position:absolute;
+      left:50%;
+      bottom:14px;
+      transform:translateX(-50%);
+      padding:10px 14px;
+      border-radius:999px;
+      background:rgba(0,0,0,.52);
+      border:1px solid rgba(255,255,255,.12);
+      color:#fff;
+      font-size:12px;
+      letter-spacing:.08em;
+      z-index:3;
+    }
+    .slot-counter{
+      position:absolute;
+      right:14px;
+      top:14px;
+      padding:8px 12px;
+      border-radius:999px;
+      background:rgba(0,0,0,.52);
+      border:1px solid rgba(255,255,255,.12);
+      color:#fff;
+      font-size:12px;
+      letter-spacing:.08em;
+      z-index:3;
+    }
+
+    .meta{
+      padding:16px 18px 18px;
+    }
+    .rarity-pill{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-width:140px;
+      padding:8px 16px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:.14em;
+      margin-bottom:12px;
+      box-shadow:0 10px 24px rgba(0,0,0,.22);
+      color:#fff;
+    }
+    .name{
+      font-size:clamp(24px,3.2vw,38px);
       font-weight:1000;
-      line-height:1.08;
+      line-height:1.05;
       margin:0 0 8px;
-      text-shadow:0 0 20px rgba(255,255,255,.08);
     }
-    .char-desc{
+    .subline{
       color:var(--muted);
       font-size:14px;
       line-height:1.7;
       min-height:48px;
     }
-    .char-meta{
-      padding:16px 18px 18px;
-      border-top:1px solid rgba(255,255,255,.08);
+    .controls{
+      display:flex;
+      flex-wrap:wrap;
+      gap:12px;
+      justify-content:center;
+      margin-top:16px;
     }
-    .rarity-pill{
-      display:inline-flex; align-items:center; justify-content:center;
-      min-width:140px; padding:8px 16px; border-radius:999px;
-      font-size:12px; font-weight:900; letter-spacing:.14em; margin-bottom:12px;
-      box-shadow:0 10px 24px rgba(0,0,0,.22);
-      color:#fff;
-    }
-    .controls{display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin-top:16px;}
     button{
-      border:none; cursor:pointer; border-radius:16px; padding:14px 20px; min-width:150px;
-      font-size:16px; font-weight:800; color:#fff; transition:transform .15s ease, filter .15s ease, opacity .15s ease;
+      border:none;
+      cursor:pointer;
+      border-radius:16px;
+      padding:14px 20px;
+      min-width:150px;
+      font-size:16px;
+      font-weight:800;
+      color:#fff;
+      transition:transform .15s ease, filter .15s ease, opacity .15s ease;
       box-shadow:0 12px 22px rgba(0,0,0,.18);
     }
     button:hover{transform:translateY(-1px);filter:brightness(1.08)}
@@ -219,48 +301,117 @@
     .btn2{background:linear-gradient(180deg,#7c3aed,#6d28d9)}
     .btn3{background:linear-gradient(180deg,#059669,#047857)}
     .btn4{background:linear-gradient(180deg,#ef4444,#b91c1c)}
+
     .section{
-      margin-top:14px; padding:16px; border-radius:20px;
-      background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.07);
+      margin-top:14px;
+      padding:16px;
+      border-radius:20px;
+      background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.07);
     }
     .section h2{margin:0 0 12px; font-size:18px;}
     .history-list,.prob-list{
-      display:grid; gap:10px; max-height:280px; overflow:auto; padding-right:6px;
+      display:grid;
+      gap:10px;
+      max-height:280px;
+      overflow:auto;
+      padding-right:6px;
     }
     .history-item,.prob-row{
-      border-radius:14px; background:rgba(10,16,38,.55); border:1px solid rgba(255,255,255,.06);
+      border-radius:14px;
+      background:rgba(10,16,38,.55);
+      border:1px solid rgba(255,255,255,.06);
       padding:12px 14px;
     }
     .history-item{
-      display:flex; justify-content:space-between; gap:12px; align-items:center; font-size:14px;
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      align-items:center;
+      font-size:14px;
     }
     .history-item small{color:var(--muted)}
     .prob-top{
-      display:flex; justify-content:space-between; gap:10px; align-items:center; font-size:14px; font-weight:700;
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:center;
+      font-size:14px;
+      font-weight:700;
     }
-    .bar{margin-top:8px; height:8px; border-radius:999px; background:rgba(255,255,255,.08); overflow:hidden;}
-    .fill{height:100%; border-radius:999px; background:linear-gradient(90deg, rgba(125,211,252,.95), rgba(168,85,247,.95)); width:50%;}
+    .bar{
+      margin-top:8px;
+      height:8px;
+      border-radius:999px;
+      background:rgba(255,255,255,.08);
+      overflow:hidden;
+    }
+    .fill{
+      height:100%;
+      border-radius:999px;
+      background:linear-gradient(90deg, rgba(125,211,252,.95), rgba(168,85,247,.95));
+      width:50%;
+    }
     .stats{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;}
     .stat{
-      padding:14px; border-radius:18px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.07);
+      padding:14px;
+      border-radius:18px;
+      background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.07);
     }
     .label{color:var(--muted);font-size:12px;margin-bottom:6px}
     .value{font-size:24px;font-weight:900}
-    .note{margin-top:12px; color:var(--muted); font-size:13px; line-height:1.7;}
+    .note{
+      margin-top:12px;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.7;
+    }
     .lineup{
-      display:grid; grid-template-columns:repeat(5, 1fr); gap:10px; margin-top:10px;
+      display:grid;
+      grid-template-columns:repeat(5, 1fr);
+      gap:10px;
+      margin-top:10px;
     }
     .slot{
-      min-height:108px; border-radius:16px; padding:10px;
-      background:rgba(6,10,22,.55); border:1px solid rgba(255,255,255,.07);
-      display:flex; flex-direction:column; justify-content:space-between; gap:8px;
+      min-height:128px;
+      border-radius:16px;
+      padding:10px;
+      background:rgba(6,10,22,.55);
+      border:1px solid rgba(255,255,255,.07);
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      gap:8px;
+      cursor:pointer;
+    }
+    .slot.active{
+      box-shadow:0 0 0 1px rgba(255,255,255,.18) inset, 0 0 24px rgba(255,255,255,.10);
+      transform:translateY(-1px);
     }
     .slot .no{font-size:11px; color:var(--muted)}
     .slot .nm{font-size:13px; font-weight:900; line-height:1.2}
     .slot .rt{font-size:11px; opacity:.9}
-    .slot.final{transform:scale(1.02); box-shadow:0 0 28px rgba(255,255,255,.16)}
+    .slot .mini{
+      width:100%;
+      aspect-ratio:1.35/1;
+      border-radius:12px;
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.04);
+    }
+    .slot .mini img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+    }
     .burst{
-      position:fixed; inset:0; pointer-events:none; z-index:35; opacity:0;
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      z-index:50;
+      opacity:0;
       background:radial-gradient(circle at center, rgba(255,255,255,.92), rgba(255,255,255,.16) 16%, rgba(255,255,255,0) 42%);
       mix-blend-mode:screen;
     }
@@ -286,26 +437,24 @@
     .rarity-epic{background:#ec4899}
     .rarity-ultra{background:#f59e0b; color:#111827}
     .rarity-legend{background:#ef4444}
-    .rarity-mythic{
-      background:linear-gradient(90deg,#fb7185,#f59e0b,#facc15); color:#111827;
+    .rarity-mythic{background:linear-gradient(90deg,#fb7185,#f59e0b,#facc15); color:#111827;}
+    .rarity-ancient{background:linear-gradient(90deg,#22c55e,#06b6d4,#8b5cf6);}
+    .rarity-divine{background:linear-gradient(90deg,#e879f9,#93c5fd,#fda4af); color:#111827;}
+    .rarity-celestial{background:linear-gradient(90deg,#ffffff,#93c5fd,#38bdf8); color:#111827;}
+    .rarity-omega{background:linear-gradient(90deg,#111827,#7c3aed,#0ea5e9);}
+    .rarity-genesis{background:linear-gradient(90deg,#f97316,#facc15,#22c55e,#38bdf8,#a855f7); color:#111827;}
+    @media (max-width: 980px){
+      .wrap{grid-template-columns:1fr}
+      .lineup{grid-template-columns:repeat(2, 1fr)}
     }
-    .rarity-ancient{
-      background:linear-gradient(90deg,#22c55e,#06b6d4,#8b5cf6);
+    @media (max-width: 560px){
+      .main,.side{padding:16px}
+      .topbar{flex-direction:column}
+      .stats{grid-template-columns:1fr}
+      button{width:100%}
+      .lineup{grid-template-columns:1fr}
+      .portrait-wrap{height:320px}
     }
-    .rarity-divine{
-      background:linear-gradient(90deg,#e879f9,#93c5fd,#fda4af); color:#111827;
-    }
-    .rarity-celestial{
-      background:linear-gradient(90deg,#ffffff,#93c5fd,#38bdf8); color:#111827;
-    }
-    .rarity-omega{
-      background:linear-gradient(90deg,#111827,#7c3aed,#0ea5e9);
-    }
-    .rarity-genesis{
-      background:linear-gradient(90deg,#f97316,#facc15,#22c55e,#38bdf8,#a855f7); color:#111827;
-    }
-    @media (max-width: 980px){ .wrap{grid-template-columns:1fr} .lineup{grid-template-columns:repeat(2, 1fr)} }
-    @media (max-width: 560px){ .main,.side{padding:16px} .topbar{flex-direction:column} .stats{grid-template-columns:1fr} button{width:100%} .lineup{grid-template-columns:1fr} }
   </style>
 </head>
 <body>
@@ -319,8 +468,8 @@
         <div>
           <h1>キャラ召喚ガチャ</h1>
           <div class="sub">
-            1回引きは動画→キャラ出現。<br>
-            10連は1体ずつ順番に出て、最後に10体並ぶモンスト風の見せ方。
+            最初の1回だけフル映像。<br>
+            そのあとはカードをタップして、次のキャラへ切り替えていく。
           </div>
         </div>
         <div class="badge">未所持・所持の管理なし</div>
@@ -328,29 +477,25 @@
 
       <div class="stage" id="stage">
         <div class="video-overlay" id="videoOverlay">
-          <div class="video-frame">
+          <div class="video-panel">
             <video id="gachaVideo" playsinline muted preload="auto"></video>
-            <div class="skip-hint">演出中</div>
+            <div class="video-text">FULL REVEAL SEQUENCE</div>
+            <div class="skip">最初だけフル映像</div>
           </div>
         </div>
 
-        <div class="summon-shell">
-          <div class="summon-core" id="core">
-            <div class="summon-head">
-              <div class="summon-title">SUMMON RESULT</div>
-              <div class="summon-count" id="summonCount">0 / 0</div>
+        <div class="result-shell">
+          <div class="result-card" id="resultCard">
+            <div class="portrait-wrap">
+              <div class="portrait-bg" id="portraitBg"></div>
+              <div class="slot-counter" id="slotCounter">0 / 0</div>
+              <div class="tap-hint" id="tapHint">タップで次へ</div>
+              <div class="portrait-glass"></div>
             </div>
-            <div class="character-portrait">
-              <div class="silhouette" id="silhouette">
-                <div>
-                  <div id="charName" class="char-name">ガチャを引こう</div>
-                  <div id="charDesc" class="char-desc">動画のあとにキャラが出現する。</div>
-                </div>
-                <div class="sigil" id="charSigil">READY</div>
-              </div>
-            </div>
-            <div class="char-meta">
+            <div class="meta">
               <div id="rarityPill" class="rarity-pill rarity-common">COMMON</div>
+              <div id="charName" class="name">ガチャを引こう</div>
+              <div id="charSub" class="subline">最初は動画が流れ、その後はタップで切り替え。</div>
               <div class="controls">
                 <button class="btn1" id="pull1">1回引く</button>
                 <button class="btn2" id="pull10">10連</button>
@@ -391,7 +536,7 @@
         <div class="prob-list" id="probList"></div>
         <div class="note">
           合計100%。上位5種はかなり低確率。<br>
-          キャラは毎回ランダムで、所持チェックはしない。
+          初回だけフル映像、それ以降はテンポ重視のタップ切り替え。
         </div>
       </div>
     </aside>
@@ -401,19 +546,19 @@
     const VIDEO_SRC = "gacha.mp4";
 
     const rarities = [
-      { key:"common", label:"COMMON", rate:44, cls:"rarity-common", desc:"よく出る基本枠。" },
-      { key:"uncommon", label:"UNCOMMON", rate:24, cls:"rarity-uncommon", desc:"少し嬉しい中堅枠。" },
-      { key:"rare", label:"RARE", rate:15, cls:"rarity-rare", desc:"ここから当たり感が出る。" },
-      { key:"sr", label:"SUPER RARE", rate:8, cls:"rarity-sr", desc:"画面の気持ちよさが上がる枠。" },
-      { key:"epic", label:"EPIC", rate:4.5, cls:"rarity-epic", desc:"かなりテンションが上がる。" },
-      { key:"ultra", label:"ULTRA RARE", rate:2.5, cls:"rarity-ultra", desc:"ここから演出がかなり熱い。" },
-      { key:"legend", label:"LEGEND", rate:1.2, cls:"rarity-legend", desc:"出たらかなり気持ちいい枠。" },
-      { key:"mythic", label:"MYTHIC", rate:0.5, cls:"rarity-mythic", desc:"かなり低確率の特別枠。" },
-      { key:"ancient", label:"ANCIENT", rate:0.2, cls:"rarity-ancient", desc:"古代級。かなり珍しい。" },
-      { key:"divine", label:"DIVINE", rate:0.07, cls:"rarity-divine", desc:"神域の領域。激レア。" },
-      { key:"celestial", label:"CELESTIAL", rate:0.02, cls:"rarity-celestial", desc:"天体級。見た目も強い。" },
-      { key:"omega", label:"OMEGA", rate:0.005, cls:"rarity-omega", desc:"ほぼ見ない超上位枠。" },
-      { key:"genesis", label:"GENESIS", rate:0.005, cls:"rarity-genesis", desc:"最上位。完全に別格。" }
+      { key:"common", label:"COMMON", rate:44, cls:"rarity-common", desc:"よく出る基本枠。", glow:"#6b7280" },
+      { key:"uncommon", label:"UNCOMMON", rate:24, cls:"rarity-uncommon", desc:"少し嬉しい中堅枠。", glow:"#10b981" },
+      { key:"rare", label:"RARE", rate:15, cls:"rarity-rare", desc:"ここから当たり感が出る。", glow:"#3b82f6" },
+      { key:"sr", label:"SUPER RARE", rate:8, cls:"rarity-sr", desc:"画面の気持ちよさが上がる枠。", glow:"#8b5cf6" },
+      { key:"epic", label:"EPIC", rate:4.5, cls:"rarity-epic", desc:"かなりテンションが上がる。", glow:"#ec4899" },
+      { key:"ultra", label:"ULTRA RARE", rate:2.5, cls:"rarity-ultra", desc:"ここから演出がかなり熱い。", glow:"#f59e0b" },
+      { key:"legend", label:"LEGEND", rate:1.2, cls:"rarity-legend", desc:"出たらかなり気持ちいい枠。", glow:"#ef4444" },
+      { key:"mythic", label:"MYTHIC", rate:0.5, cls:"rarity-mythic", desc:"かなり低確率の特別枠。", glow:"#f97316" },
+      { key:"ancient", label:"ANCIENT", rate:0.2, cls:"rarity-ancient", desc:"古代級。かなり珍しい。", glow:"#22c55e" },
+      { key:"divine", label:"DIVINE", rate:0.07, cls:"rarity-divine", desc:"神域の領域。激レア。", glow:"#e879f9" },
+      { key:"celestial", label:"CELESTIAL", rate:0.02, cls:"rarity-celestial", desc:"天体級。見た目も強い。", glow:"#93c5fd" },
+      { key:"omega", label:"OMEGA", rate:0.005, cls:"rarity-omega", desc:"ほぼ見ない超上位枠。", glow:"#7c3aed" },
+      { key:"genesis", label:"GENESIS", rate:0.005, cls:"rarity-genesis", desc:"最上位。完全に別格。", glow:"#facc15" }
     ];
 
     const namePool = {
@@ -466,27 +611,28 @@
 
     const video = document.getElementById("gachaVideo");
     const videoOverlay = document.getElementById("videoOverlay");
-    const core = document.getElementById("core");
-    const silhouette = document.getElementById("silhouette");
+    const resultCard = document.getElementById("resultCard");
+    const portraitBg = document.getElementById("portraitBg");
     const rarityPill = document.getElementById("rarityPill");
     const charName = document.getElementById("charName");
-    const charDesc = document.getElementById("charDesc");
-    const charSigil = document.getElementById("charSigil");
+    const charSub = document.getElementById("charSub");
+    const slotCounter = document.getElementById("slotCounter");
+    const tapHint = document.getElementById("tapHint");
     const lineup = document.getElementById("lineup");
     const history = document.getElementById("history");
     const totalCount = document.getElementById("totalCount");
     const bestRarity = document.getElementById("bestRarity");
     const probList = document.getElementById("probList");
-    const summonCount = document.getElementById("summonCount");
     const burst = document.getElementById("burst");
-    const fx = document.getElementById("fx");
-    const ctx = fx.getContext("2d");
 
     const pull1 = document.getElementById("pull1");
     const pull10 = document.getElementById("pull10");
     const loadVideo = document.getElementById("loadVideo");
     const videoInput = document.getElementById("videoInput");
     const resetBtn = document.getElementById("reset");
+    const stage = document.getElementById("stage");
+    const fx = document.getElementById("fx");
+    const ctx = fx.getContext("2d");
 
     let total = 0;
     let bestIndex = -1;
@@ -494,6 +640,11 @@
     let particles = [];
     let audioCtx = null;
     let currentVideoObjectURL = null;
+    let introPlayed = false;
+
+    let currentPack = [];
+    let currentIndex = 0;
+    let currentMode = 1;
 
     function resizeFx(){
       fx.width = Math.floor(window.innerWidth * devicePixelRatio);
@@ -534,7 +685,7 @@
 
     function buildProb(){
       probList.innerHTML = "";
-      rarities.forEach((r, i) => {
+      rarities.forEach((r) => {
         const row = document.createElement("div");
         row.className = "prob-row";
         const odds = r.rate >= 1 ? `約1/${Math.round(100 / r.rate)}` : `約1/${Math.round(100 / r.rate).toLocaleString()}`;
@@ -559,45 +710,139 @@
       return rarities[rarities.length - 1];
     }
 
-    function makeCharacter(rarity){
-      const names = namePool[rarity.key];
-      const classes = classPool[rarity.key];
-      const descs = descPool[rarity.key];
-      const n = names[(Math.random() * names.length) | 0];
-      const c = classes[(Math.random() * classes.length) | 0];
-      const d = descs[(Math.random() * descs.length) | 0];
-      const sigil = rarity.label.replace("SUPER RARE","SR").replace("ULTRA RARE","UR");
-      return {
-        name: n,
-        role: c,
-        desc: d,
-        sigil,
+    function rand(arr){ return arr[(Math.random() * arr.length) | 0]; }
+    function seededSeed(){ return Math.floor(Math.random() * 1e9); }
+    function mulberry32(a){
+      return function(){
+        let t = a += 0x6D2B79F5;
+        t = Math.imul(t ^ t >>> 15, t | 1);
+        t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
       };
+    }
+
+    function esc(s){ return String(s).replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
+
+    function buildPortraitSVG(ch){
+      const auraStops = {
+        common:["#94a3b8","#475569"], uncommon:["#34d399","#10b981"], rare:["#60a5fa","#3b82f6"],
+        sr:["#a78bfa","#8b5cf6"], epic:["#f472b6","#ec4899"], ultra:["#fbbf24","#f59e0b"],
+        legend:["#f87171","#ef4444"], mythic:["#fb923c","#f59e0b"], ancient:["#4ade80","#22c55e"],
+        divine:["#f0abfc","#e879f9"], celestial:["#bfdbfe","#38bdf8"], omega:["#7c3aed","#0ea5e9"],
+        genesis:["#fde68a","#f97316"]
+      }[ch.rarity.key];
+
+      const rng = mulberry32((ch.name.length * 977 + ch.role.length * 123 + seededSeed()) >>> 0);
+      const skin = ["#f8e4cf","#f1d0b9","#e6b899","#d8a47d","#b97c5a"][Math.floor(rng()*5)];
+      const eye = ["#60a5fa","#22c55e","#f472b6","#f59e0b","#a78bfa","#38bdf8","#f87171"][Math.floor(rng()*7)];
+      const hair = ["#111827","#1f2937","#334155","#7c3aed","#ec4899","#f59e0b","#06b6d4","#eab308","#94a3b8"][Math.floor(rng()*9)];
+      const outfit = ["#0f172a","#1e293b","#312e81","#4c1d95","#7f1d1d","#064e3b","#78350f","#0f766e"][Math.floor(rng()*8)];
+      const pose = Math.floor(rng()*3);
+      const weapon = Math.floor(rng()*5);
+
+      const eyeY = pose === 0 ? 183 : pose === 1 ? 178 : 176;
+      const mouthY = pose === 2 ? 214 : 220;
+      const hairTop = pose === 0 ? 115 : 108;
+      const armLeft = pose === 0 ? "M155 309 C120 280, 112 258, 118 238" : pose === 1 ? "M154 306 C130 276, 126 248, 134 226" : "M150 310 C132 286, 140 253, 160 228";
+      const armRight = pose === 0 ? "M258 309 C292 286, 304 262, 300 238" : pose === 1 ? "M260 306 C286 276, 288 248, 278 226" : "M262 310 C282 286, 276 253, 258 228";
+      const weaponX = weapon === 0 ? 90 : weapon === 1 ? 340 : weapon === 2 ? 76 : weapon === 3 ? 350 : 160;
+      const weaponY = weapon === 0 ? 238 : weapon === 1 ? 230 : weapon === 2 ? 260 : weapon === 3 ? 255 : 210;
+      const frameColor = ch.rarity.key === "genesis" ? "rgba(255,240,180,.95)" : "rgba(255,255,255,.18)";
+      const borderGlow = ch.rarity.key === "genesis" ? "0 0 40px rgba(250,204,21,.45)" : "0 0 26px rgba(255,255,255,.18)";
+
+      const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 360" width="420" height="360">
+        <defs>
+          <radialGradient id="bg" cx="50%" cy="40%" r="70%">
+            <stop offset="0%" stop-color="${auraStops[0]}" stop-opacity=".24"/>
+            <stop offset="45%" stop-color="${auraStops[1]}" stop-opacity=".12"/>
+            <stop offset="100%" stop-color="#0a1022" stop-opacity="1"/>
+          </radialGradient>
+          <radialGradient id="aura" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="${ch.glow}" stop-opacity=".65"/>
+            <stop offset="60%" stop-color="${ch.glow}" stop-opacity=".16"/>
+            <stop offset="100%" stop-color="${ch.glow}" stop-opacity="0"/>
+          </radialGradient>
+          <linearGradient id="hair" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="${hair}"/>
+            <stop offset="100%" stop-color="#0f172a"/>
+          </linearGradient>
+          <linearGradient id="cloth" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="${outfit}"/>
+            <stop offset="100%" stop-color="#020617"/>
+          </linearGradient>
+          <linearGradient id="skin" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="${skin}"/>
+            <stop offset="100%" stop-color="#b88766"/>
+          </linearGradient>
+          <linearGradient id="weapon" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="${ch.glow}" stop-opacity=".9"/>
+            <stop offset="100%" stop-color="#ffffff" stop-opacity=".8"/>
+          </linearGradient>
+        </defs>
+
+        <rect width="420" height="360" fill="url(#bg)"/>
+        <circle cx="210" cy="182" r="140" fill="url(#aura)"/>
+        <circle cx="210" cy="182" r="115" fill="rgba(255,255,255,.02)"/>
+        <circle cx="210" cy="182" r="146" fill="none" stroke="${frameColor}" stroke-width="2" opacity=".45" style="filter: drop-shadow(${borderGlow})"/>
+
+        <circle cx="210" cy="124" r="40" fill="url(#skin)"/>
+        <path d="M170 120 C176 ${hairTop}, 194 92, 210 92 C236 92, 255 103, 262 120 C255 144, 248 150, 234 152 C226 154, 192 154, 180 150 C173 145, 168 135, 170 120 Z" fill="url(#hair)"/>
+        <path d="M163 131 C161 95, 184 74, 210 74 C238 74, 260 96, 258 130 C246 121, 236 120, 221 122 C212 123, 201 126, 195 128 C184 130, 175 132, 163 131 Z" fill="url(#hair)" opacity=".92"/>
+
+        <circle cx="196" cy="${eyeY}" r="4.2" fill="${eye}"/>
+        <circle cx="224" cy="${eyeY}" r="4.2" fill="${eye}"/>
+        <path d="M202 ${mouthY} C208 ${mouthY+4}, 212 ${mouthY+4}, 218 ${mouthY}" fill="none" stroke="#3f2b20" stroke-width="2.5" stroke-linecap="round"/>
+
+        <path d="M144 214 C162 188, 176 176, 210 176 C244 176, 258 188, 276 214 L294 314 C260 326, 238 328, 210 328 C182 328, 160 326, 126 314 Z" fill="url(#cloth)"/>
+        <path d="M182 190 C192 198, 228 198, 238 190 L244 216 C233 222, 226 224, 210 224 C194 224, 187 222, 176 216 Z" fill="${ch.glow}" opacity=".22"/>
+        <path d="${armLeft}" fill="none" stroke="${skin}" stroke-width="18" stroke-linecap="round"/>
+        <path d="${armRight}" fill="none" stroke="${skin}" stroke-width="18" stroke-linecap="round"/>
+
+        ${weapon === 0 ? `
+          <path d="M${weaponX} ${weaponY} L${weaponX} ${weaponY-74}" stroke="url(#weapon)" stroke-width="6" stroke-linecap="round"/>
+          <path d="M${weaponX-12} ${weaponY-42} L${weaponX+12} ${weaponY-42}" stroke="url(#weapon)" stroke-width="6" stroke-linecap="round"/>
+        ` : weapon === 1 ? `
+          <path d="M${weaponX} ${weaponY} L${weaponX-34} ${weaponY-58}" stroke="url(#weapon)" stroke-width="6" stroke-linecap="round"/>
+          <path d="M${weaponX-34} ${weaponY-58} L${weaponX-52} ${weaponY-74}" stroke="url(#weapon)" stroke-width="6" stroke-linecap="round"/>
+        ` : weapon === 2 ? `
+          <path d="M${weaponX} ${weaponY} C${weaponX+8} ${weaponY-32}, ${weaponX+24} ${weaponY-66}, ${weaponX+42} ${weaponY-82}" stroke="url(#weapon)" stroke-width="6" stroke-linecap="round" fill="none"/>
+          <circle cx="${weaponX+42}" cy="${weaponY-82}" r="8" fill="${ch.glow}" opacity=".85"/>
+        ` : weapon === 3 ? `
+          <path d="M${weaponX} ${weaponY} L${weaponX+32} ${weaponY-54}" stroke="url(#weapon)" stroke-width="6" stroke-linecap="round"/>
+          <path d="M${weaponX+24} ${weaponY-70} L${weaponX+42} ${weaponY-42}" stroke="url(#weapon)" stroke-width="6" stroke-linecap="round"/>
+        ` : `
+          <path d="M${weaponX} ${weaponY} L${weaponX} ${weaponY-66}" stroke="url(#weapon)" stroke-width="6" stroke-linecap="round"/>
+          <path d="M${weaponX-18} ${weaponY-24} L${weaponX+18} ${weaponY-24}" stroke="url(#weapon)" stroke-width="6" stroke-linecap="round"/>
+          <circle cx="${weaponX}" cy="${weaponY-76}" r="6" fill="${ch.glow}" opacity=".9"/>
+        `}
+
+        <ellipse cx="210" cy="340" rx="92" ry="10" fill="rgba(255,255,255,.14)"/>
+        <path d="M166 236 C182 248, 188 260, 192 284" stroke="${ch.glow}" stroke-opacity=".42" stroke-width="3" fill="none" stroke-linecap="round"/>
+        <path d="M254 236 C238 248, 232 260, 228 284" stroke="${ch.glow}" stroke-opacity=".42" stroke-width="3" fill="none" stroke-linecap="round"/>
+        <text x="210" y="46" text-anchor="middle" fill="rgba(255,255,255,.78)" font-size="15" font-family="system-ui, sans-serif" letter-spacing=".14em">${esc(ch.rarity.label)} · ${esc(ch.role)}</text>
+      </svg>`;
+      return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
+    }
+
+    function makeCharacter(rarity){
+      const name = rand(namePool[rarity.key]);
+      const role = rand(classPool[rarity.key]);
+      const desc = rand(descPool[rarity.key]);
+      const ch = { name, role, desc, rarity: rarity };
+      ch.svg = buildPortraitSVG(ch);
+      return ch;
     }
 
     function addHistory(rarity, ch){
       const el = document.createElement("div");
       el.className = "history-item";
       el.innerHTML = `
-        <div><strong>${rarity.label}</strong> / ${ch.name} · ${ch.role}</div>
+        <div><strong>${rarity.label}</strong> / ${esc(ch.name)} · ${esc(ch.role)}</div>
         <small>${new Date().toLocaleTimeString("ja-JP", {hour:"2-digit", minute:"2-digit", second:"2-digit"})}</small>
       `;
       history.prepend(el);
       while (history.children.length > 20) history.removeChild(history.lastChild);
-    }
-
-    function addLineupItem(idx, rarity, ch, final=false){
-      const slot = document.createElement("div");
-      slot.className = "slot" + (final ? " final" : "");
-      slot.innerHTML = `
-        <div class="no">#${idx + 1}</div>
-        <div>
-          <div class="nm">${ch.name}</div>
-          <div class="rt">${rarity.label}</div>
-        </div>
-        <div class="rt">${ch.role}</div>
-      `;
-      lineup.appendChild(slot);
     }
 
     function updateStats(rarity){
@@ -608,30 +853,6 @@
         bestIndex = rank;
         bestRarity.textContent = rarity.label;
       }
-    }
-
-    function showCharacter(rarity, ch, isFinal=false){
-      rarityPill.className = `rarity-pill ${rarity.cls}`;
-      rarityPill.textContent = rarity.label;
-      charName.textContent = ch.name;
-      charDesc.textContent = `${ch.role} · ${ch.desc}`;
-      charSigil.textContent = ch.sigil;
-
-      core.classList.remove("pop","shake");
-      silhouette.classList.remove("show");
-      void core.offsetWidth;
-      core.classList.add("pop","shake");
-      silhouette.classList.add("show");
-
-      if (isFinal) {
-        core.style.boxShadow = "0 18px 50px rgba(0,0,0,.26), 0 0 0 1px rgba(255,255,255,.08) inset, 0 0 42px rgba(255,255,255,.15)";
-      }
-    }
-
-    function showBurst(){
-      burst.classList.remove("on");
-      void burst.offsetWidth;
-      burst.classList.add("on");
     }
 
     function makeParticles(){
@@ -670,97 +891,147 @@
     }
     requestAnimationFrame(drawParticles);
 
+    function showBurst(){
+      burst.classList.remove("on");
+      void burst.offsetWidth;
+      burst.classList.add("on");
+    }
+
     function wait(ms){ return new Promise(r => setTimeout(r, ms)); }
 
-    async function playRevealVideo(speed = 1.8, hold = 2400){
+    async function playIntroVideo(){
+      if (introPlayed) return;
       videoOverlay.classList.add("on");
       video.currentTime = 0;
-      video.playbackRate = speed;
+      video.playbackRate = 1;
       try{
         await video.play();
       }catch(e){}
-      await wait(hold);
+      const duration = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : 8;
+      await wait(Math.ceil(duration * 1000) + 140);
       video.pause();
       videoOverlay.classList.remove("on");
+      introPlayed = true;
     }
 
-    async function summonOne(keepOverlay=false){
-      const rarity = pickRarity();
-      const ch = makeCharacter(rarity);
-
-      sweep();
-      await playRevealVideo(rarity.rate <= 0.5 ? 1.65 : 1.85, rarity.rate <= 0.5 ? 2900 : 2200);
-
-      showCharacter(rarity, ch, true);
+    function renderCurrent(){
+      if (!currentPack.length){
+        portraitBg.innerHTML = "";
+        rarityPill.className = "rarity-pill rarity-common";
+        rarityPill.textContent = "COMMON";
+        charName.textContent = "ガチャを引こう";
+        charSub.textContent = "最初は動画が流れ、その後はタップで切り替え。";
+        slotCounter.textContent = "0 / 0";
+        tapHint.textContent = "タップで次へ";
+        return;
+      }
+      const ch = currentPack[currentIndex];
+      portraitBg.innerHTML = `<img alt="${esc(ch.name)}" src="${ch.svg}">`;
+      rarityPill.className = `rarity-pill ${ch.rarity.cls}`;
+      rarityPill.textContent = ch.rarity.label;
+      charName.textContent = ch.name;
+      charSub.textContent = `${ch.role} · ${ch.desc}`;
+      slotCounter.textContent = `${currentIndex + 1} / ${currentPack.length}`;
+      tapHint.textContent = currentIndex < currentPack.length - 1 ? "タップで次のキャラ" : "最後まで見たら再抽選";
+      resultCard.classList.remove("pop","shake");
+      void resultCard.offsetWidth;
+      resultCard.classList.add("pop","shake");
       showBurst();
       makeParticles();
-      hitSound(rarities.findIndex(r => r.key === rarity.key));
-      updateStats(rarity);
-      addHistory(rarity, ch);
-      return {rarity, ch};
+      hitSound(rarities.findIndex(r => r.key === ch.rarity.key));
+      const slots = lineup.querySelectorAll(".slot");
+      slots.forEach((s, i) => s.classList.toggle("active", i === currentIndex));
     }
 
-    async function pull1Action(){
-      if (busy) return;
-      busy = true;
-      pull1.disabled = pull10.disabled = loadVideo.disabled = true;
-      await summonOne();
-      busy = false;
-      pull1.disabled = pull10.disabled = loadVideo.disabled = false;
-    }
-
-    async function pull10Action(){
-      if (busy) return;
-      busy = true;
-      pull1.disabled = pull10.disabled = loadVideo.disabled = true;
+    function buildLineup(){
       lineup.innerHTML = "";
-      summonCount.textContent = "10 / 10";
+      currentPack.forEach((ch, idx) => {
+        const slot = document.createElement("div");
+        slot.className = "slot" + (idx === currentIndex ? " active" : "");
+        slot.innerHTML = `
+          <div class="no">#${idx + 1}</div>
+          <div class="mini"><img alt="${esc(ch.name)}" src="${ch.svg}"></div>
+          <div>
+            <div class="nm">${esc(ch.name)}</div>
+            <div class="rt">${ch.rarity.label}</div>
+          </div>
+          <div class="rt">${esc(ch.role)}</div>
+        `;
+        slot.addEventListener("click", (e) => {
+          e.stopPropagation();
+          currentIndex = idx;
+          renderCurrent();
+        });
+        lineup.appendChild(slot);
+      });
+    }
 
-      let last = null;
-      for (let i = 0; i < 10; i++){
+    function makePack(count){
+      currentMode = count;
+      currentPack = Array.from({length: count}, () => {
         const rarity = pickRarity();
         const ch = makeCharacter(rarity);
-
-        sweep();
-        await playRevealVideo(rarity.rate <= 0.5 ? 1.7 : 1.9, rarity.rate <= 0.5 ? 2800 : 1800);
-
-        showCharacter(rarity, ch, i === 9);
-        showBurst();
-        makeParticles();
-        hitSound(rarities.findIndex(r => r.key === rarity.key));
         updateStats(rarity);
         addHistory(rarity, ch);
-        addLineupItem(i, rarity, ch, i === 9);
-        last = {rarity, ch};
+        return ch;
+      });
+      currentIndex = 0;
+      buildLineup();
+      renderCurrent();
+    }
 
-        await wait(rarity.rate <= 0.5 ? 240 : 160);
+    async function startDraw(count){
+      if (busy) return;
+      busy = true;
+      setButtons(true);
+
+      sweep();
+      if (!introPlayed){
+        await playIntroVideo();
       }
 
-      if (last){
-        core.classList.add("pop");
-        setTimeout(() => core.classList.remove("pop"), 260);
-      }
-      summonCount.textContent = "0 / 0";
+      makePack(count);
       busy = false;
-      pull1.disabled = pull10.disabled = loadVideo.disabled = false;
+      setButtons(false);
+    }
+
+    function nextTap(){
+      if (busy || !currentPack.length) return;
+      if (currentIndex < currentPack.length - 1){
+        currentIndex++;
+        renderCurrent();
+      } else {
+        makePack(currentMode);
+      }
+    }
+
+    function setButtons(state){
+      pull1.disabled = state;
+      pull10.disabled = state;
+      loadVideo.disabled = state;
+      resetBtn.disabled = state;
     }
 
     function resetAll(){
       if (busy) return;
       total = 0;
       bestIndex = -1;
+      introPlayed = false;
+      currentPack = [];
+      currentIndex = 0;
+      currentMode = 1;
       totalCount.textContent = "0";
       bestRarity.textContent = "-";
       history.innerHTML = "";
       lineup.innerHTML = "";
+      portraitBg.innerHTML = "";
       rarityPill.className = "rarity-pill rarity-common";
       rarityPill.textContent = "COMMON";
       charName.textContent = "ガチャを引こう";
-      charDesc.textContent = "動画のあとにキャラが出現する。";
-      charSigil.textContent = "READY";
-      silhouette.classList.remove("show");
-      core.classList.remove("pop","shake");
-      summonCount.textContent = "0 / 0";
+      charSub.textContent = "最初は動画が流れ、その後はタップで切り替え。";
+      slotCounter.textContent = "0 / 0";
+      tapHint.textContent = "タップで次へ";
+      resultCard.classList.remove("pop","shake");
     }
 
     loadVideo.addEventListener("click", () => videoInput.click());
@@ -773,16 +1044,17 @@
       video.load();
     });
 
-    pull1.addEventListener("click", pull1Action);
-    pull10.addEventListener("click", pull10Action);
+    pull1.addEventListener("click", () => startDraw(1));
+    pull10.addEventListener("click", () => startDraw(10));
     resetBtn.addEventListener("click", resetAll);
-
-    const stage = document.getElementById("stage");
+    stage.addEventListener("click", () => {
+      if (videoOverlay.classList.contains("on")) return;
+      nextTap();
+    });
 
     buildProb();
     video.src = VIDEO_SRC;
     video.load();
-    drawParticles();
   </script>
 </body>
 </html>
