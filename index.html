@@ -65,6 +65,18 @@
     *{ animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; scroll-behavior:auto !important; }
   }
 
+  /* text rises in from below */
+  [data-rise]{
+    opacity:0;
+    transform:translateY(18px);
+    transition:opacity .7s ease, transform .7s ease;
+    will-change:opacity, transform;
+  }
+  [data-rise].is-visible{
+    opacity:1;
+    transform:translateY(0);
+  }
+
   /* ---------- Background atmosphere ---------- */
   .bg-field{
     position:fixed;
@@ -1264,7 +1276,7 @@
   <!-- ============ ABOUT / INTRO ============ -->
   <section class="section section-alt" id="about">
     <div class="wrap">
-      <div class="section-head">
+      <div class="section-head" data-rise>
         <p class="kicker">What You'll Find</p>
         <h2 class="section-title">このサイトでわかること</h2>
         <p class="section-desc">
@@ -1453,9 +1465,9 @@
         </p>
       </div>
 
-      <div class="grid-3">
+      <div class="grid-3" data-rise>
 
-        <a href="#" class="link-card">
+        <a href="https://www.youtube.com/channel/UCkoHikIfVSDslry7nkoi91w" class="link-card" target="_blank" rel="noopener noreferrer">
           <div class="link-top">
             <span class="link-icon yt">
               <svg viewBox="0 0 24 24" fill="none"><rect x="2.5" y="6" width="19" height="12" rx="4" fill="none"/><path d="M10 9.2l5.2 2.8-5.2 2.8V9.2z" fill="#fff"/></svg>
@@ -1475,7 +1487,7 @@
           </div>
         </a>
 
-        <a href="#" class="link-card">
+        <a href="https://x.com/yohdayo" class="link-card" target="_blank" rel="noopener noreferrer">
           <div class="link-top">
             <span class="link-icon x">
               <svg viewBox="0 0 24 24" fill="none"><path d="M6 5l13 14M19 5L6 19" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
@@ -1495,7 +1507,7 @@
           </div>
         </a>
 
-        <a href="#" class="link-card">
+        <a href="https://www.youtube.com/@yohtubedensetsu-kirinuki" class="link-card" target="_blank" rel="noopener noreferrer">
           <div class="link-top">
             <span class="link-icon clip">
               <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l4 4M18 6l-4 4M6 18l4-4M18 18l-4-4" stroke="#fff" stroke-width="2" stroke-linecap="round"/><circle cx="7" cy="17" r="2" stroke="#fff" stroke-width="1.6"/><circle cx="17" cy="17" r="2" stroke="#fff" stroke-width="1.6"/></svg>
@@ -1530,7 +1542,7 @@
         </p>
       </div>
 
-      <div class="highlight-list">
+      <div class="highlight-list" data-rise>
 
         <div class="highlight-item">
           <span class="hi-mark">01</span>
@@ -1568,6 +1580,95 @@
     </div>
   </section>
 
+
+  <!-- ============ TOURNAMENT ACHIEVEMENTS ============ -->
+  <section class="section section-alt" id="achievements">
+    <div class="wrap">
+      <div class="section-head" data-rise>
+        <p class="kicker">Tournament Results</p>
+        <h2 class="section-title">大会実績</h2>
+        <p class="section-desc">
+          追加したい実績を、時系列で見やすく整理しました。順位未入力のものは、そのまま「結果未入力」として残しています。
+        </p>
+      </div>
+
+      <div class="video-list" data-rise>
+        <div class="video-row" style="grid-template-columns:100px minmax(0,1fr) auto;">
+          <span class="video-rank">2024</span>
+          <div class="video-info">
+            <p class="video-title">2024/11/1 ボドカス #3 - VODKA CUSTOM</p>
+            <p class="video-meta">結果：1位 / 葉が優勝メンバー側</p>
+          </div>
+          <div class="video-views"><p class="video-views-num">1位</p><p class="video-views-label">記録</p></div>
+        </div>
+        <div class="video-row" style="grid-template-columns:100px minmax(0,1fr) auto;">
+          <span class="video-rank">2024</span>
+          <div class="video-info">
+            <p class="video-title">2024/12/15〜12/22 ASGS LCQ ～札幌へのラストチャンス～</p>
+            <p class="video-meta">結果：2位</p>
+          </div>
+          <div class="video-views"><p class="video-views-num">2位</p><p class="video-views-label">記録</p></div>
+        </div>
+        <div class="video-row" style="grid-template-columns:100px minmax(0,1fr) auto;">
+          <span class="video-rank">2025</span>
+          <div class="video-info">
+            <p class="video-title">2025/1/22 ボドカス #4 - VALORANT 特別編</p>
+            <p class="video-meta">結果：結果未入力 / TAIYOROの葉ページでも順位表示なし</p>
+          </div>
+          <div class="video-views"><p class="video-views-num">未入力</p><p class="video-views-label">記録</p></div>
+        </div>
+        <div class="video-row" style="grid-template-columns:100px minmax(0,1fr) auto;">
+          <span class="video-rank">2025</span>
+          <div class="video-info">
+            <p class="video-title">2025/3/21 FragPunk Streamers Arena</p>
+            <p class="video-meta">結果：1位 / 葉が優勝枠</p>
+          </div>
+          <div class="video-views"><p class="video-views-num">1位</p><p class="video-views-label">記録</p></div>
+        </div>
+        <div class="video-row" style="grid-template-columns:100px minmax(0,1fr) auto;">
+          <span class="video-rank">2025</span>
+          <div class="video-info">
+            <p class="video-title">2025/4/16〜4/17 ボドカップ Call of Duty: Warzone</p>
+            <p class="video-meta">結果：4位</p>
+          </div>
+          <div class="video-views"><p class="video-views-num">4位</p><p class="video-views-label">記録</p></div>
+        </div>
+        <div class="video-row" style="grid-template-columns:100px minmax(0,1fr) auto;">
+          <span class="video-rank">2025</span>
+          <div class="video-info">
+            <p class="video-title">2025/4/17〜4/20 第1回 Crazy Raccoon Cup Marvel Rivals</p>
+            <p class="video-meta">結果：2位</p>
+          </div>
+          <div class="video-views"><p class="video-views-num">2位</p><p class="video-views-label">記録</p></div>
+        </div>
+        <div class="video-row" style="grid-template-columns:100px minmax(0,1fr) auto;">
+          <span class="video-rank">2025</span>
+          <div class="video-info">
+            <p class="video-title">2025/5/20〜5/21 GeoGuessr 地理探索 - Riddle aja ありけん sqla 葉</p>
+            <p class="video-meta">結果：結果未入力 / イベント参加は確認済み</p>
+          </div>
+          <div class="video-views"><p class="video-views-num">未入力</p><p class="video-views-label">記録</p></div>
+        </div>
+        <div class="video-row" style="grid-template-columns:100px minmax(0,1fr) auto;">
+          <span class="video-rank">2025</span>
+          <div class="video-info">
+            <p class="video-title">2025/6/2 Devil Clutch杯 #2 Supported by Riot Games</p>
+            <p class="video-meta">結果：1位 / 葉が優勝メンバー</p>
+          </div>
+          <div class="video-views"><p class="video-views-num">1位</p><p class="video-views-label">記録</p></div>
+        </div>
+        <div class="video-row" style="grid-template-columns:100px minmax(0,1fr) auto;">
+          <span class="video-rank">2025</span>
+          <div class="video-info">
+            <p class="video-title">2025/7/31 葉の納涼祭 ~スプラッシュXで涼んでく？~ presented by RIDDLE</p>
+            <p class="video-meta">結果：結果未入力 / 主催イベントとして掲載</p>
+          </div>
+          <div class="video-views"><p class="video-views-num">未入力</p><p class="video-views-label">記録</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ============ POPULAR VIDEOS ============ -->
   <section class="section" id="videos">
     <div class="wrap">
@@ -1579,7 +1680,7 @@
         </p>
       </div>
 
-      <div class="video-list">
+      <div class="video-list" data-rise>
 
         <div class="video-row">
           <span class="video-rank">01</span>
@@ -1645,17 +1746,71 @@
     </div>
   </section>
 
+
+      <div class="grid-3" style="margin-top:22px;" data-rise>
+        <a href="https://www.youtube.com/shorts/0cjKg-Z3xak" class="link-card" target="_blank" rel="noopener noreferrer">
+          <div class="link-top">
+            <span class="link-icon yt">
+              <svg viewBox="0 0 24 24" fill="none"><rect x="2.5" y="6" width="19" height="12" rx="4" fill="none"/><path d="M10 9.2l5.2 2.8-5.2 2.8V9.2z" fill="#fff"/></svg>
+            </span>
+            <span class="link-arrow">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M6 18L18 6M9 6h9v9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+          </div>
+          <div class="link-body">
+            <p class="link-name">Video URL</p>
+            <h3 class="link-title">見たことの無い落ち方をする配信者</h3>
+            <p class="link-text">https://www.youtube.com/shorts/0cjKg-Z3xak</p>
+          </div>
+          <div class="link-foot"><span>Open</span><span class="cta-label">動画へ →</span></div>
+        </a>
+
+        <a href="https://www.youtube.com/shorts/cjAfTHMm0VM" class="link-card" target="_blank" rel="noopener noreferrer">
+          <div class="link-top">
+            <span class="link-icon yt">
+              <svg viewBox="0 0 24 24" fill="none"><rect x="2.5" y="6" width="19" height="12" rx="4" fill="none"/><path d="M10 9.2l5.2 2.8-5.2 2.8V9.2z" fill="#fff"/></svg>
+            </span>
+            <span class="link-arrow">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M6 18L18 6M9 6h9v9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+          </div>
+          <div class="link-body">
+            <p class="link-name">Video URL</p>
+            <h3 class="link-title">フラグ回収が早すぎる配信者www</h3>
+            <p class="link-text">https://www.youtube.com/shorts/cjAfTHMm0VM</p>
+          </div>
+          <div class="link-foot"><span>Open</span><span class="cta-label">動画へ →</span></div>
+        </a>
+
+        <a href="https://www.youtube.com/shorts/Bgc5fRlwtx0" class="link-card" target="_blank" rel="noopener noreferrer">
+          <div class="link-top">
+            <span class="link-icon yt">
+              <svg viewBox="0 0 24 24" fill="none"><rect x="2.5" y="6" width="19" height="12" rx="4" fill="none"/><path d="M10 9.2l5.2 2.8-5.2 2.8V9.2z" fill="#fff"/></svg>
+            </span>
+            <span class="link-arrow">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M6 18L18 6M9 6h9v9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+          </div>
+          <div class="link-body">
+            <p class="link-name">Video URL</p>
+            <h3 class="link-title">コメント欄の団結力がありすぎる配信www</h3>
+            <p class="link-text">https://www.youtube.com/shorts/Bgc5fRlwtx0</p>
+          </div>
+          <div class="link-foot"><span>Open</span><span class="cta-label">動画へ →</span></div>
+        </a>
+      </div>
+
   <!-- ============ CTA BAND ============ -->
   <section class="section" style="padding-top:0;">
     <div class="wrap">
-      <div class="cta-band">
+      <div class="cta-band" data-rise>
         <div class="cta-content">
           <h2 class="cta-title">次の配信を、見逃さないために。</h2>
           <p class="cta-text">チャンネル登録とXのフォローで、最新情報をいち早くキャッチできます。</p>
         </div>
         <div class="cta-actions">
-          <a href="#links" class="btn btn-white">チャンネル登録</a>
-          <a href="#links" class="btn btn-outline-white">Xをフォロー</a>
+          <a href="https://www.youtube.com/channel/UCkoHikIfVSDslry7nkoi91w" class="btn btn-white" target="_blank" rel="noopener noreferrer">チャンネル登録</a>
+          <a href="https://x.com/yohdayo" class="btn btn-outline-white" target="_blank" rel="noopener noreferrer">Xをフォロー</a>
         </div>
       </div>
     </div>
@@ -1697,9 +1852,9 @@
       <div>
         <p class="footer-col-title">Links</p>
         <div class="footer-links">
-          <a href="#links">YouTube</a>
-          <a href="#links">X (Twitter)</a>
-          <a href="#links">葉ちゅべ伝説（切り抜き）</a>
+          <a href="https://www.youtube.com/channel/UCkoHikIfVSDslry7nkoi91w" target="_blank" rel="noopener noreferrer">YouTube</a>
+          <a href="https://x.com/yohdayo" target="_blank" rel="noopener noreferrer">X (Twitter)</a>
+          <a href="https://www.youtube.com/@yohtubedensetsu-kirinuki" target="_blank" rel="noopener noreferrer">葉ちゅべ伝説（切り抜き）</a>
         </div>
       </div>
     </div>
@@ -1756,6 +1911,23 @@
         var src = tpl.content.firstElementChild.getAttribute('src');
         galleryImg.setAttribute('src', src);
       }
+    }
+
+    var riseTargets = Array.prototype.slice.call(document.querySelectorAll('[data-rise]'));
+    if('IntersectionObserver' in window){
+      var io = new IntersectionObserver(function(entries){
+        entries.forEach(function(entry){
+          if(entry.isIntersecting){
+            entry.target.classList.add('is-visible');
+            io.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.14, rootMargin: '0px 0px -8% 0px' });
+      riseTargets.forEach(function(el){
+        io.observe(el);
+      });
+    } else {
+      riseTargets.forEach(function(el){ el.classList.add('is-visible'); });
     }
   })();
 </script>
