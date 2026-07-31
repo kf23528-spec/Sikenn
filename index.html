@@ -884,6 +884,71 @@
   }
 
   /* =========================================================
+     POPULAR VIDEOS
+  ========================================================= */
+  .video-list{
+    display:flex;
+    flex-direction:column;
+    background:var(--white);
+    border:1px solid var(--line);
+    border-radius:var(--radius-l);
+    box-shadow:var(--shadow-sm);
+    overflow:hidden;
+  }
+  .video-row{
+    display:grid;
+    grid-template-columns:44px minmax(0,1fr) auto;
+    align-items:center;
+    gap:18px;
+    padding:20px 26px;
+    border-bottom:1px solid var(--line);
+    transition:background .2s ease;
+  }
+  .video-row:last-child{ border-bottom:none; }
+  .video-row:hover{ background:var(--paper); }
+
+  .video-rank{
+    font-size:18px;
+    font-weight:800;
+    color:var(--blue);
+    font-variant-numeric:tabular-nums;
+    letter-spacing:-.01em;
+  }
+
+  .video-info{ min-width:0; }
+  .video-title{
+    font-size:14.5px;
+    font-weight:700;
+    color:var(--ink);
+    margin:0 0 4px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .video-meta{
+    font-size:12px;
+    color:var(--ink-mute);
+    font-weight:600;
+  }
+
+  .video-views{
+    flex:0 0 auto;
+    text-align:right;
+    white-space:nowrap;
+  }
+  .video-views-num{
+    font-size:15px;
+    font-weight:800;
+    color:var(--ink);
+  }
+  .video-views-label{
+    font-size:10.5px;
+    color:var(--ink-mute);
+    font-weight:600;
+    margin-top:2px;
+  }
+
+  /* =========================================================
      CTA BAND
   ========================================================= */
   .cta-band{
@@ -1051,6 +1116,10 @@
     .grid-3{ grid-template-columns:1fr; gap:16px; }
     .highlight-list{ grid-template-columns:1fr; gap:16px; }
 
+    .video-row{ grid-template-columns:32px minmax(0,1fr); row-gap:6px; padding:16px 18px; }
+    .video-views{ grid-column:2 / 3; text-align:left; }
+    .video-rank{ font-size:15px; }
+
     .sched-row{ grid-template-columns:1fr; row-gap:8px; padding:16px 18px; }
     .sched-tag{ justify-self:start; }
     .schedule-note{ padding:14px 18px; }
@@ -1096,6 +1165,7 @@
       <a href="#about">About</a>
       <a href="#links">Links</a>
       <a href="#highlights">Highlights</a>
+      <a href="#videos">Videos</a>
       <a href="#footer">Contact</a>
     </nav>
 
@@ -1112,6 +1182,7 @@
     <a href="#about">About</a>
     <a href="#links">Links</a>
     <a href="#highlights">Highlights</a>
+    <a href="#videos">Videos</a>
     <a href="#footer">Contact</a>
     <a href="#hero-cta" class="btn btn-primary btn-block">チャンネルへ行く</a>
   </nav>
@@ -1175,14 +1246,14 @@
         </div>
 
         <p class="hc-desc">
-          企画配信・雑談・ゲーム実況を軸に活動中。
-          落ち着いたトーンと丁寧なコメント拾いに定評があり、
-          初見でも入りやすい雰囲気が魅力。
+          ホラーゲーム・FPS・Only Upなど幅広いジャンルを実況。
+          関西弁の軽妙なツッコミと迫真のリアクションが持ち味で、
+          初見でも一瞬で引き込まれる盛り上がりが魅力。
         </p>
 
         <ul class="hc-list">
-          <li><span class="ico"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4L19 6" stroke="#2454ff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>初見さん向けまとめを常設</li>
-          <li><span class="ico"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4L19 6" stroke="#2454ff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>切り抜き動画リンクを整理</li>
+          <li><span class="ico"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4L19 6" stroke="#2454ff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>ホラー・FPS・バカゲー実況が中心</li>
+          <li><span class="ico"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4L19 6" stroke="#2454ff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>公式切り抜き「葉ちゅべ伝説」も稼働中</li>
           <li><span class="ico"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4L19 6" stroke="#2454ff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>最新情報をXで随時共有</li>
         </ul>
       </div>
@@ -1435,8 +1506,8 @@
           </div>
           <div class="link-body">
             <p class="link-name">Clips</p>
-            <h3 class="link-title">切り抜きチャンネル</h3>
-            <p class="link-text">名場面や神回を厳選した切り抜きまとめ。短時間で魅力が伝わります。</p>
+            <h3 class="link-title">葉ちゅべ伝説</h3>
+            <p class="link-text">公式切り抜きチャンネル。名場面や神回を厳選し、短時間で魅力が伝わります。</p>
           </div>
           <div class="link-foot">
             <span>Watch</span>
@@ -1464,8 +1535,8 @@
         <div class="highlight-item">
           <span class="hi-mark">01</span>
           <div class="hi-body">
-            <h3 class="hi-title">落ち着いた進行と丁寧な間合い</h3>
-            <p class="hi-text">テンポの良さだけでなく、聞き手を置いていかない話し方が幅広い層から支持されています。</p>
+            <h3 class="hi-title">関西弁の軽妙なツッコミ</h3>
+            <p class="hi-text">起こったことに間髪入れずツッコむテンポの良さが持ち味で、聞いていて飽きない掛け合いが幅広い層から支持されています。</p>
           </div>
         </div>
 
@@ -1480,8 +1551,8 @@
         <div class="highlight-item">
           <span class="hi-mark">03</span>
           <div class="hi-body">
-            <h3 class="hi-title">企画のクオリティの高さ</h3>
-            <p class="hi-text">単発企画から長期シリーズまで、準備と構成にこだわった内容が評価されています。</p>
+            <h3 class="hi-title">迫真のリアクション</h3>
+            <p class="hi-text">ホラーや高難度ゲームでの大きなリアクションが名物で、その瞬間を切り取った動画は数千万回再生を記録しています。</p>
           </div>
         </div>
 
@@ -1490,6 +1561,83 @@
           <div class="hi-body">
             <h3 class="hi-title">コメント欄との距離の近さ</h3>
             <p class="hi-text">リアルタイムでのコメント拾いが丁寧で、視聴者との一体感が生まれやすい空気感があります。</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ POPULAR VIDEOS ============ -->
+  <section class="section" id="videos">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="kicker">Popular Videos</p>
+        <h2 class="section-title">代表的な人気動画</h2>
+        <p class="section-desc">
+          再生数上位の動画を厳選しました。まず何から見ればいいか迷ったら、ここから追いかけるのがおすすめです。
+        </p>
+      </div>
+
+      <div class="video-list">
+
+        <div class="video-row">
+          <span class="video-rank">01</span>
+          <div class="video-info">
+            <p class="video-title">見たことの無い落ち方をする配信者</p>
+            <p class="video-meta">Only Up実況 ・ 2023.07.07</p>
+          </div>
+          <div class="video-views">
+            <p class="video-views-num">2,170万回</p>
+            <p class="video-views-label">再生</p>
+          </div>
+        </div>
+
+        <div class="video-row">
+          <span class="video-rank">02</span>
+          <div class="video-info">
+            <p class="video-title">しょぼんにブチ切れる配信者www</p>
+            <p class="video-meta">ホラー実況 ・ 2023.05.20</p>
+          </div>
+          <div class="video-views">
+            <p class="video-views-num">1,196万回</p>
+            <p class="video-views-label">再生</p>
+          </div>
+        </div>
+
+        <div class="video-row">
+          <span class="video-rank">03</span>
+          <div class="video-info">
+            <p class="video-title">どこで奇跡起こしとんwww</p>
+            <p class="video-meta">Only Up実況 ・ 2023.07.22</p>
+          </div>
+          <div class="video-views">
+            <p class="video-views-num">1,179万回</p>
+            <p class="video-views-label">再生</p>
+          </div>
+        </div>
+
+        <div class="video-row">
+          <span class="video-rank">04</span>
+          <div class="video-info">
+            <p class="video-title">フラグ回収が早すぎる配信者www</p>
+            <p class="video-meta">ゲーム実況 ・ 2023.07.17</p>
+          </div>
+          <div class="video-views">
+            <p class="video-views-num">1,132万回</p>
+            <p class="video-views-label">再生</p>
+          </div>
+        </div>
+
+        <div class="video-row">
+          <span class="video-rank">05</span>
+          <div class="video-info">
+            <p class="video-title">コメント欄の団結力がありすぎる配信www</p>
+            <p class="video-meta">Apex Legends ・ 2022.08.02</p>
+          </div>
+          <div class="video-views">
+            <p class="video-views-num">1,155万回</p>
+            <p class="video-views-label">再生</p>
           </div>
         </div>
 
@@ -1542,6 +1690,7 @@
           <a href="#about">About</a>
           <a href="#links">Links</a>
           <a href="#highlights">Highlights</a>
+          <a href="#videos">Videos</a>
         </div>
       </div>
 
@@ -1550,7 +1699,7 @@
         <div class="footer-links">
           <a href="#links">YouTube</a>
           <a href="#links">X (Twitter)</a>
-          <a href="#links">切り抜きチャンネル</a>
+          <a href="#links">葉ちゅべ伝説（切り抜き）</a>
         </div>
       </div>
     </div>
