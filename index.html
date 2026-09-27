@@ -1,0 +1,778 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Three.js FPS CPU Arena — External Assets</title>
+<style>
+  :root{color-scheme:dark}
+  *{box-sizing:border-box}
+  html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#05070b;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
+  canvas{display:block}
+  #boot{
+    position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 50% 35%,#15202d 0,#070a0f 55%,#020307 100%);
+    z-index:100;
+  }
+  .panel{
+    width:min(680px,92vw);padding:28px;border:1px solid #3b4b60;border-radius:18px;
+    background:rgba(7,11,17,.92);box-shadow:0 24px 80px #000a;backdrop-filter:blur(8px)
+  }
+  h1{margin:0 0 8px;font-size:28px}
+  .sub{margin:0 0 20px;color:#aab7c7}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  button{
+    appearance:none;border:1px solid #53657c;border-radius:12px;background:#182231;color:#fff;
+    padding:13px 15px;font-weight:700;cursor:pointer
+  }
+  button:hover{background:#223046}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  button.primary{background:#2d6cdf;border-color:#4e84ee}
+  button.primary:hover{background:#3b78e3}
+  #status{margin-top:15px;min-height:48px;padding:12px;border:1px solid #263548;border-radius:10px;background:#0b111a;color:#c6d2df}
+  .tags{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .tag{padding:5px 8px;border-radius:999px;background:#111a26;color:#9db0c6;font-size:12px}
+  #hud{
+    position:fixed;inset:0;pointer-events:none;z-index:20;color:#fff
+  }
+  #topbar{position:absolute;left:16px;top:16px;display:flex;gap:10px;flex-wrap:wrap}
+  .hudbox{padding:9px 12px;border-radius:10px;background:#080d14b8;border:1px solid #314154;font-size:14px}
+  #crosshair{position:absolute;left:50%;top:50%;width:20px;height:20px;transform:translate(-50%,-50%)}
+  #crosshair:before,#crosshair:after{content:"";position:absolute;background:#fff;opacity:.9}
+  #crosshair:before{left:9px;top:1px;width:2px;height:18px}
+  #crosshair:after{left:1px;top:9px;width:18px;height:2px}
+  #hint{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);padding:8px 12px;border-radius:10px;background:#080d14b8;border:1px solid #314154;font-size:13px}
+  #dead,#clear{
+    position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:80;
+    background:#000a
+  }
+  .endpanel{width:min(420px,90vw);text-align:center;padding:28px;border-radius:16px;background:#0b111a;border:1px solid #3b4b60}
+  .endpanel h2{margin-top:0;font-size:36px}
+  #damage{position:absolute;inset:0;background:rgba(180,0,0,.3);opacity:0;transition:opacity .08s}
+  #touchUI{display:none;position:fixed;inset:0;z-index:40;pointer-events:none;touch-action:none}
+  #stickBase{position:absolute;left:22px;bottom:24px;width:126px;height:126px;border-radius:50%;border:2px solid #ffffff55;background:#0b1018aa;pointer-events:auto}
+  #stick{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px;border-radius:50%;background:#dce8ff55;border:2px solid #dce8ff88}
+  .touchBtn{position:absolute;pointer-events:auto;border:1px solid #ffffff55;background:#0b1018cc;color:#fff;border-radius:18px;font-weight:800;user-select:none;-webkit-user-select:none;touch-action:none}
+  #fireBtn{right:24px;bottom:38px;width:92px;height:92px;border-radius:50%;font-size:18px}
+  #reloadBtn{right:28px;bottom:144px;width:82px;height:52px}
+  #touchHint{position:absolute;right:20px;top:72px;padding:8px 10px;border-radius:10px;background:#080d14aa;border:1px solid #314154;font-size:12px}
+  #adsBtn{right:28px;bottom:212px;width:82px;height:52px}
+  #adsBtn.active{background:#275e9b;border-color:#7fb7ff;box-shadow:0 0 22px #4fa0ff55}
+  #scopeOverlay{position:fixed;inset:0;display:none;z-index:30;pointer-events:none;background:radial-gradient(circle at center,transparent 0 27%,rgba(0,0,0,.18) 29%,rgba(0,0,0,.78) 43%,rgba(0,0,0,.94) 100%)}
+  #scopeOverlay:before{content:"";position:absolute;left:50%;top:50%;width:min(52vw,520px);height:min(52vw,520px);transform:translate(-50%,-50%);border:2px solid #d8e7f8aa;border-radius:50%;box-shadow:0 0 0 100vmax rgba(0,0,0,.05), inset 0 0 45px #000a}
+  #scopeOverlay:after{content:"";position:absolute;left:50%;top:50%;width:2px;height:min(50vw,500px);transform:translate(-50%,-50%);background:#d8e7f833;box-shadow:calc(-min(50vw,500px)/2) 0 0 #d8e7f822, calc(min(50vw,500px)/2) 0 0 #d8e7f822}
+  #crosshair.hit{width:28px;height:28px}
+  #crosshair.hit:before,#crosshair.hit:after{background:#ffef9b;box-shadow:0 0 8px #fff7}
+  @media(pointer:coarse){#touchUI{display:block} #hint{bottom:162px;font-size:12px}}
+  @media(max-width:560px){.grid{grid-template-columns:1fr}}
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<div id="boot">
+  <div class="panel">
+    <h1>THREE.JS FPS / CPU ARENA</h1>
+    <p class="sub">3D素材はHTMLに埋め込まず、assets/ フォルダのファイル名で参照します。
+    ボタンを押した素材だけを読み込み、読み込み済みの素材はゲーム中でも反映されます。タブレット操作にも対応。</p>
+    <div class="grid">
+      <button id="loadFloor">① 新しい床を読み込む</button>
+      <button id="loadHuman">② 人を読み込む</button>
+      <button id="loadWall">③ 壁を読み込む</button>
+      <button id="loadRifle">④ 銃を読み込む</button>
+    </div>
+    <button id="startGame" class="primary" style="width:100%;margin-top:10px">ワールド開始</button>
+    <div id="status">ワールド開始可能。素材は必要なものだけボタンで読み込みます。</div>
+    <div style="margin-top:10px;font-size:12px;color:#9db0c6;line-height:1.6">参照先: <code>assets/floor.glb</code> / <code>assets/human.fbx</code> / <code>assets/wall.glb</code> / <code>assets/rifle.glb</code></div>
+    <div class="tags">
+      <span class="tag">WASD 移動</span><span class="tag">マウス 視点</span><span class="tag">左クリック 長押しで連射</span>
+      <span class="tag">右クリック / ADS 覗く</span><span class="tag">R リロード</span><span class="tag">Shift ダッシュ</span>
+    </div>
+  </div>
+</div>
+
+<div id="hud" style="display:none">
+  <div id="topbar">
+    <div class="hudbox">HP <b id="hp">100</b></div>
+    <div class="hudbox">AMMO <b id="ammo">30</b> / <b id="reserve">120</b></div>
+    <div class="hudbox">WAVE <b id="wave">1</b></div>
+    <div class="hudbox">SCORE <b id="score">0</b></div>
+    <div class="hudbox">CPU <b id="cpus">0</b></div><div class="hudbox">NEXT <b id="nextCpu">10.0s</b></div>
+  </div>
+  <div id="crosshair"></div>
+  <div id="damage"></div>
+  <div id="hint">PC: WASD + マウス / 左クリック長押しで連射 / 右クリックADS　｜　タブレット: 左スティック・右側ドラッグ・FIRE長押し・ADS</div>
+</div>
+<div id="touchUI">
+  <div id="stickBase"><div id="stick"></div></div>
+  <button class="touchBtn" id="adsBtn">ADS</button>
+  <button class="touchBtn" id="reloadBtn">RELOAD</button>
+  <button class="touchBtn" id="fireBtn">FIRE</button>
+  <div id="touchHint">右側をドラッグ：視点</div>
+</div>
+<div id="scopeOverlay"></div>
+
+<div id="dead"><div class="endpanel"><h2>GAME OVER</h2><p>Score: <b id="deadScore">0</b></p><button id="retry">もう一度</button></div></div>
+<div id="clear"><div class="endpanel"><h2>CLEAR</h2><p>全ウェーブ撃破。</p><p>Score: <b id="clearScore">0</b></p><button id="retry2">もう一度</button></div></div>
+
+<script>
+const ASSET_PATHS = {
+  floor:'assets/floor.glb',
+  human:'assets/human.fbx',
+  wall:'assets/wall.glb',
+  rifle:'assets/rifle.glb'
+};
+
+const state = {
+  floor:null, human:null, wall:null, rifle:null,
+  humanAnimations:[],
+  three:null, loaders:null, scene:null, camera:null, renderer:null,
+  started:false, loading:new Set(), mounts:{floor:null,wall:null,rifle:null}, fallback:{floor:null,covers:null}
+};
+const $ = id => document.getElementById(id);
+function setStatus(msg){ $("status").textContent=msg; }
+function ready(){ $("startGame").disabled = false; }
+
+async function fetchAsset(url){
+  const res = await fetch(url, {cache:'force-cache'});
+  if(!res.ok) throw new Error(`アセット取得失敗: ${url} (${res.status})`);
+  return await res.arrayBuffer();
+}
+
+function externalAssetHint(){
+  if(location.protocol==='file:') return 'この版はファイル参照方式です。HTMLをfile://で直接開くとブラウザの制限でassets/を読めないことがあります。HTTPサーバー経由で開いてください。';
+  return 'assets/フォルダをHTMLと同じ場所に置き、ファイル名を確認してください。';
+}
+
+async function loadThree(){
+  if(state.three) return state.three;
+  setStatus("Three.js本体を読み込み中…");
+  const THREE = await import("three");
+  const [{GLTFLoader},{FBXLoader},{SkeletonUtils}] = await Promise.all([
+    import("three/addons/loaders/GLTFLoader.js"),
+    import("three/addons/loaders/FBXLoader.js"),
+    import("three/addons/utils/SkeletonUtils.js")
+  ]);
+  state.three=THREE;
+  state.loaders={GLTFLoader,FBXLoader,SkeletonUtils};
+  return THREE;
+}
+function bboxSize(obj, THREE){
+  const box=new THREE.Box3().setFromObject(obj);
+  return {box, size:box.getSize(new THREE.Vector3()), center:box.getCenter(new THREE.Vector3())};
+}
+function centerAndScale(obj, targetSize){
+  const THREE=state.three;
+  const {box,size,center}=bboxSize(obj,THREE);
+  const maxDim=Math.max(size.x,size.y,size.z)||1;
+  obj.scale.multiplyScalar(targetSize/maxDim);
+  const b2=new THREE.Box3().setFromObject(obj);
+  const c2=b2.getCenter(new THREE.Vector3());
+  obj.position.sub(c2);
+}
+function collectMeshes(obj, fn){
+  obj.traverse(o=>{ if(o.isMesh) fn(o); });
+}
+
+async function loadFloorAsset(){
+  if(state.floor || state.loading.has('floor')) return;
+  state.loading.add('floor'); $('loadFloor').disabled=true;
+  try{
+    await loadThree(); setStatus(`床を読み込み中… ${ASSET_PATHS.floor}`);
+    const {GLTFLoader}=state.loaders;
+    const gltf=await new GLTFLoader().loadAsync(ASSET_PATHS.floor);
+    state.floor=gltf.scene; centerAndScale(state.floor,8);
+    collectMeshes(state.floor,m=>{m.castShadow=false;m.receiveShadow=true;});
+    setStatus('床の読み込み完了。');
+    if(state.started) mountFloor();
+  } catch(e){
+    setStatus((e?.message||e)+'\n'+externalAssetHint()); throw e;
+  } finally {
+    state.loading.delete('floor'); $('loadFloor').disabled=!!state.floor;
+  }
+}
+async function loadHumanAsset(){
+  if(state.human || state.loading.has('human')) return;
+  state.loading.add('human'); $('loadHuman').disabled=true;
+  try{
+    await loadThree(); setStatus(`人モデルを読み込み中… ${ASSET_PATHS.human}`);
+    const {FBXLoader}=state.loaders;
+    const obj=await new FBXLoader().loadAsync(ASSET_PATHS.human);
+    const {size}=bboxSize(obj,state.three); const h=Math.max(size.y,0.01);
+    obj.scale.multiplyScalar(1.8/h); const {box}=bboxSize(obj,state.three); obj.position.y-=box.min.y;
+    collectMeshes(obj,m=>{m.castShadow=false;m.receiveShadow=false;if(m.material)m.material.side=state.three.FrontSide;});
+    state.human=obj; state.humanAnimations=obj.animations?obj.animations.slice():[];
+    setStatus('人モデルの読み込み完了。CPUテンプレートを準備します…');
+    if(state.started && game?.warmBots) game.warmBots();
+  } catch(e){
+    setStatus((e?.message||e)+'\n'+externalAssetHint()); throw e;
+  } finally {
+    state.loading.delete('human'); $('loadHuman').disabled=!!state.human;
+  }
+}
+async function loadWallAsset(){
+  if(state.wall || state.loading.has('wall')) return;
+  state.loading.add('wall'); $('loadWall').disabled=true;
+  try{
+    await loadThree(); setStatus(`壁を読み込み中… ${ASSET_PATHS.wall}`);
+    const {GLTFLoader}=state.loaders; const gltf=await new GLTFLoader().loadAsync(ASSET_PATHS.wall);
+    state.wall=gltf.scene; centerAndScale(state.wall,6);
+    collectMeshes(state.wall,m=>{m.castShadow=false;m.receiveShadow=true;});
+    setStatus('壁の読み込み完了。'); if(state.started) mountWall();
+  } catch(e){
+    setStatus((e?.message||e)+'\n'+externalAssetHint()); throw e;
+  } finally {
+    state.loading.delete('wall'); $('loadWall').disabled=!!state.wall;
+  }
+}
+async function loadRifleAsset(){
+  if(state.rifle || state.loading.has('rifle')) return;
+  state.loading.add('rifle'); $('loadRifle').disabled=true;
+  try{
+    await loadThree(); setStatus(`銃を読み込み中… ${ASSET_PATHS.rifle}`);
+    const {GLTFLoader}=state.loaders; const gltf=await new GLTFLoader().loadAsync(ASSET_PATHS.rifle);
+    state.rifle=gltf.scene; const {size}=bboxSize(state.rifle,state.three);
+    const maxDim=Math.max(size.x,size.y,size.z)||1; state.rifle.scale.multiplyScalar(1.15/maxDim);
+    collectMeshes(state.rifle,m=>{m.castShadow=false;m.receiveShadow=false;});
+    setStatus('銃の読み込み完了。'); if(state.started && game?.setWeapon) game.setWeapon();
+  } catch(e){
+    setStatus((e?.message||e)+'\n'+externalAssetHint()); throw e;
+  } finally {
+    state.loading.delete('rifle'); $('loadRifle').disabled=!!state.rifle;
+  }
+}
+function bindLoaderButton(id,fn){
+  $(id).onclick=async()=>{
+    try{ await fn(); }
+    catch(e){ console.error(e); setStatus((e?.message||e)+"。この素材は無視してワールドを開始できます。"); $(id).disabled=false; }
+  };
+}
+bindLoaderButton("loadFloor",loadFloorAsset);
+bindLoaderButton("loadHuman",loadHumanAsset);
+bindLoaderButton("loadWall",loadWallAsset);
+bindLoaderButton("loadRifle",loadRifleAsset);
+</script>
+
+
+<script>
+let game=null;
+$('startGame').onclick=async()=>{
+  try{
+    if(state.started) return;
+    $('startGame').disabled=true;
+    setStatus('Three.jsを準備中…');
+    await loadThree();
+    setStatus('3Dワールドを起動中…');
+    await initGame();
+  }catch(e){
+    console.error(e);
+    setStatus('ゲーム開始失敗: '+(e?.message||e));
+    $('startGame').disabled=false;
+  }
+};
+
+function mountFloor(){
+  if(!state.started || !state.floor || !window.__mountWorld) return;
+  const {scene,camera}=window.__mountWorld;
+  const THREE=state.three;
+  if(state.mounts.floor) scene.remove(state.mounts.floor);
+  if(state.fallback.floor) state.fallback.floor.visible=false;
+  const group=new THREE.Group();
+  const base=state.floor;
+  const positions=[[0,0],[-1.5,0],[1.5,0],[0,-1.5]];
+  positions.forEach(([x,z])=>{const tile=base.clone(true);tile.position.set(x*8,0,z*8);group.add(tile);});
+  scene.add(group); state.mounts.floor=group;
+}
+function mountWall(){
+  if(!state.started || !state.wall || !window.__mountWorld) return;
+  const {scene}=window.__mountWorld;
+  const THREE=state.three;
+  if(state.mounts.wall) scene.remove(state.mounts.wall);
+  if(state.fallback.covers) state.fallback.covers.visible=false;
+  const group=new THREE.Group();
+  const base=state.wall;
+  const wallPositions=[[0,3,-30,0,0,0],[0,3,30,0,Math.PI,0]];
+  wallPositions.forEach(([x,y,z,rx,ry,rz])=>{const w=base.clone(true);w.position.set(x,y,z);w.rotation.set(rx,ry,rz);group.add(w);});
+  scene.add(group); state.mounts.wall=group;
+}
+
+async function initGame(){
+  const THREE=state.three;
+  const {SkeletonUtils}=state.loaders;
+  if(!THREE) throw new Error('Three.jsが読み込まれていません');
+
+  const scene=new THREE.Scene();
+  scene.background=new THREE.Color(0x87a9c8);
+  scene.fog=new THREE.Fog(0x87a9c8,45,130);
+  state.scene=scene;
+
+  const camera=new THREE.PerspectiveCamera(75,Math.max(innerWidth,1)/Math.max(innerHeight,1),0.05,250);
+  camera.rotation.order='YXZ';
+  camera.position.set(0,1.65,14);
+  camera.rotation.set(-0.03,0,0);
+  state.camera=camera;
+
+  let renderer;
+  try{
+    renderer=new THREE.WebGLRenderer({antialias:false,powerPreference:'high-performance',depth:true,stencil:false});
+  }catch(e){
+    $('boot').style.display='flex';
+    throw new Error('WebGLを利用できません。Chrome / Edgeで開き、ブラウザのグラフィック機能を確認してください。');
+  }
+  renderer.setPixelRatio(matchMedia('(pointer:coarse)').matches ? 1 : Math.min(window.devicePixelRatio||1, 1.25));
+  renderer.setSize(innerWidth,innerHeight,false);
+  renderer.outputColorSpace=THREE.SRGBColorSpace;
+  renderer.toneMapping=THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure=1.15;
+  renderer.shadowMap.enabled=false;
+  renderer.domElement.id='gameCanvas';
+  renderer.domElement.style.touchAction='none';
+  document.body.appendChild(renderer.domElement);
+  state.renderer=renderer;
+
+  scene.add(new THREE.HemisphereLight(0xffffff,0x405060,2.2));
+  const sun=new THREE.DirectionalLight(0xffffff,3.2);
+  sun.position.set(20,30,12); sun.castShadow=false; scene.add(sun);
+  const warm=new THREE.PointLight(0xffd7a0,35,55,2);
+  warm.position.set(0,7,0); scene.add(warm);
+
+  const fallbackFloor=new THREE.Mesh(
+    new THREE.PlaneGeometry(80,80,40,40),
+    new THREE.MeshStandardMaterial({color:0x4d5964,roughness:.8,metalness:.15})
+  );
+  fallbackFloor.rotation.x=-Math.PI/2; fallbackFloor.position.y=-0.02; fallbackFloor.receiveShadow=true; scene.add(fallbackFloor);
+  state.fallback.floor=fallbackFloor;
+  const grid=new THREE.GridHelper(80,40,0xb8cad8,0x71808c); grid.position.y=0.01; scene.add(grid);
+
+  const fallbackCovers=new THREE.Group(); scene.add(fallbackCovers); state.fallback.covers=fallbackCovers;
+  const coverMat=new THREE.MeshStandardMaterial({color:0x263645,roughness:.7,metalness:.25});
+  const mkCover=(x,z,sx,sz,h=3)=>{
+    const m=new THREE.Mesh(new THREE.BoxGeometry(sx,h,sz),coverMat);
+    m.position.set(x,h/2,z); m.castShadow=true; m.receiveShadow=true; fallbackCovers.add(m);
+  };
+  mkCover(0,-30,60,2,5); mkCover(0,30,60,2,5); mkCover(-30,0,2,60,5); mkCover(30,0,2,60,5);
+  mkCover(-12,-9,10,2.5,3); mkCover(11,-10,10,2.5,3); mkCover(-10,12,10,2.5,3); mkCover(12,12,10,2.5,3);
+
+  // Mounted asset groups are created once. Loading buttons can populate them later without restarting.
+  window.__mountWorld = {scene, camera};
+  state.started=true;
+  mountFloor();
+  mountWall();
+
+  // ----- First-person view model: rifle + two hands/forearms -----
+  const viewModel=new THREE.Group();
+  camera.add(viewModel);
+  scene.add(camera);
+
+  let weapon=state.rifle ? state.rifle.clone(true) : makeFallbackGun(THREE);
+  weapon.position.set(0.42,-0.40,-0.78);
+  weapon.rotation.set(0,Math.PI,0);
+  weapon.scale.multiplyScalar(state.rifle?0.92:1);
+  collectMeshes(weapon,m=>{m.frustumCulled=false; m.castShadow=false;});
+  viewModel.add(weapon);
+  function setWeapon(){
+    if(!state.rifle) return;
+    const next=state.rifle.clone(true);
+    next.position.copy(weapon.position); next.rotation.copy(weapon.rotation); next.scale.multiplyScalar(.92);
+    collectMeshes(next,m=>{m.frustumCulled=false;m.castShadow=false;});
+    viewModel.remove(weapon); weapon=next; viewModel.add(weapon);
+  }
+
+  const skin=new THREE.MeshStandardMaterial({color:0xc58c6c,roughness:.86,metalness:0});
+  const sleeve=new THREE.MeshStandardMaterial({color:0x252d37,roughness:.88,metalness:.12});
+  function limb(length,radius){
+    const g=new THREE.Group();
+    const arm=new THREE.Mesh(new THREE.CylinderGeometry(radius,radius*1.08,length,10),sleeve);
+    arm.rotation.z=Math.PI/2; arm.position.x=-length*.48; arm.castShadow=false; g.add(arm);
+    const hand=new THREE.Mesh(new THREE.BoxGeometry(.28,.16,.38),skin);
+    hand.position.x=length*.04; hand.castShadow=false; g.add(hand);
+    return g;
+  }
+  const supportArm=limb(.72,.075);
+  supportArm.position.set(0.04,-0.18,-0.78);
+  supportArm.rotation.set(.18,-.10,-.32);
+  viewModel.add(supportArm);
+  const gripArm=limb(.58,.08);
+  gripArm.position.set(0.38,-0.31,-0.56);
+  gripArm.rotation.set(-.14,-.02,-.25);
+  viewModel.add(gripArm);
+
+  // Muzzle flash / subtle smoke-like bloom (no external textures).
+  const muzzleFlash=new THREE.Mesh(
+    new THREE.SphereGeometry(.075,10,10),
+    new THREE.MeshBasicMaterial({color:0xfff0b0,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false})
+  );
+  muzzleFlash.position.set(.02,-.34,-1.72);
+  viewModel.add(muzzleFlash);
+  const muzzleLight=new THREE.PointLight(0xffd37a,0,4,2);
+  muzzleLight.position.copy(muzzleFlash.position); viewModel.add(muzzleLight);
+
+  const scopeOverlay=$('scopeOverlay');
+  const adsBtn=$('adsBtn');
+  const fireBtn=$('fireBtn');
+
+  const move={f:false,b:false,l:false,r:false,sprint:false};
+  const touchMove={x:0,y:0};
+  let yaw=0, pitch=-0.03;
+  let lookPointer=false, activePointerId=null, lastPX=0,lastPY=0;
+  let pointerLocked=false;
+  let firing=false, aiming=false;
+  let ammo=30, reserve=120, hp=100, score=0;
+  let reloading=false;
+  let fireTimer=0;
+  let spawnTimer=10.0;
+  let totalTime=0;
+  let dead=false;
+
+  // Springy recoil/sway state. Values are deliberately small to keep the view readable.
+  let recoilPitch=0, recoilYaw=0, recoilKick=0;
+  let weaponBobX=0, weaponBobY=0;
+  let flashTimer=0;
+  let hitFlashTimer=0;
+
+  const raycaster=new THREE.Raycaster();
+  const clock=new THREE.Clock();
+  const enemies=[];
+
+  function applyLook(dx,dy,sensitivity){
+    const scale=aiming?0.65:1;
+    yaw-=dx*sensitivity*scale;
+    pitch-=dy*sensitivity*scale;
+    pitch=THREE.MathUtils.clamp(pitch,-Math.PI/2+0.12,Math.PI/2-0.12);
+  }
+
+  function setAiming(v){
+    if(dead) return;
+    aiming=v;
+    scopeOverlay.style.display=aiming?'block':'none';
+    adsBtn.classList.toggle('active',aiming);
+    adsBtn.textContent=aiming?'ADS ON':'ADS';
+  }
+
+  function bindCanvasInput(){
+    const c=renderer.domElement;
+    c.addEventListener('contextmenu',e=>e.preventDefault());
+    c.addEventListener('pointerdown',e=>{
+      if(e.pointerType==='mouse'){
+        activePointerId=e.pointerId;
+        lookPointer=true;
+        lastPX=e.clientX; lastPY=e.clientY;
+        if(document.pointerLockElement!==c && c.requestPointerLock) c.requestPointerLock().catch?.(()=>{});
+        if(e.button===0) firing=true;
+        if(e.button===2) {e.preventDefault(); setAiming(true);}
+      }
+    });
+    window.addEventListener('pointerup',e=>{
+      if(e.pointerType==='mouse'){
+        if(e.button===0) firing=false;
+        if(e.button===2) setAiming(false);
+      }
+      if(e.pointerId===activePointerId){lookPointer=false;activePointerId=null;}
+    });
+    window.addEventListener('blur',()=>{firing=false;setAiming(false);});
+    window.addEventListener('mousemove',e=>{
+      if(pointerLocked) applyLook(e.movementX||0,e.movementY||0,0.0022);
+      else if(lookPointer) {applyLook(e.clientX-lastPX,e.clientY-lastPY,0.004);lastPX=e.clientX;lastPY=e.clientY;}
+    });
+    document.addEventListener('pointerlockchange',()=>{pointerLocked=document.pointerLockElement===c;});
+  }
+  bindCanvasInput();
+
+  // Tablet: left virtual stick = move, right-side drag = look, long-press FIRE = automatic fire.
+  const base=$('stickBase'), stick=$('stick'), reloadBtn=$('reloadBtn');
+  let stickId=null, lookTouchId=null;
+  base.addEventListener('pointerdown',e=>{
+    if(e.pointerType==='mouse') return;
+    base.setPointerCapture?.(e.pointerId);
+    stickId=e.pointerId; updateStick(e); e.preventDefault();
+  });
+  base.addEventListener('pointermove',e=>{if(e.pointerId===stickId){updateStick(e);e.preventDefault();}});
+  function resetStick(){
+    stickId=null; touchMove.x=touchMove.y=0; stick.style.transform='translate(0,0)';
+    move.f=move.b=move.l=move.r=false;
+  }
+  base.addEventListener('pointerup',e=>{if(e.pointerId===stickId){resetStick();e.preventDefault();}});
+  base.addEventListener('pointercancel',e=>{if(e.pointerId===stickId)resetStick();});
+  function updateStick(e){
+    const r=base.getBoundingClientRect(), cx=r.left+r.width/2, cy=r.top+r.height/2;
+    let dx=e.clientX-cx, dy=e.clientY-cy, max=r.width*.38, len=Math.hypot(dx,dy);
+    if(len>max){dx=dx/len*max;dy=dy/len*max;}
+    touchMove.x=dx/max;touchMove.y=dy/max;
+    move.l=touchMove.x<-.15;move.r=touchMove.x>.15;move.f=touchMove.y<-.15;move.b=touchMove.y>.15;
+    stick.style.transform=`translate(${dx}px,${dy}px)`;
+  }
+  window.addEventListener('pointerdown',e=>{
+    if(e.pointerType==='mouse') return;
+    if(e.target.closest?.('#stickBase')||e.target.closest?.('.touchBtn')) return;
+    if(e.clientX>innerWidth*.42){lookTouchId=e.pointerId;lastPX=e.clientX;lastPY=e.clientY;e.preventDefault();}
+  },{passive:false});
+  window.addEventListener('pointermove',e=>{
+    if(e.pointerId===lookTouchId){applyLook(e.clientX-lastPX,e.clientY-lastPY,0.006);lastPX=e.clientX;lastPY=e.clientY;e.preventDefault();}
+  },{passive:false});
+  window.addEventListener('pointerup',e=>{if(e.pointerId===lookTouchId)lookTouchId=null;},{passive:false});
+
+  // Use pointerdown/up instead of click so long press continuously fires.
+  fireBtn.addEventListener('pointerdown',e=>{
+    e.preventDefault(); fireBtn.setPointerCapture?.(e.pointerId); firing=true;
+  });
+  const stopFire=()=>{firing=false;};
+  fireBtn.addEventListener('pointerup',stopFire);
+  fireBtn.addEventListener('pointercancel',stopFire);
+  fireBtn.addEventListener('pointerleave',e=>{if(e.pointerType==='mouse')stopFire();});
+  adsBtn.addEventListener('pointerdown',e=>{e.preventDefault();setAiming(!aiming);});
+  reloadBtn.addEventListener('pointerdown',e=>{e.preventDefault();reload();});
+
+  addEventListener('keydown',e=>{
+    if(e.code==='KeyW')move.f=true;if(e.code==='KeyS')move.b=true;if(e.code==='KeyA')move.l=true;if(e.code==='KeyD')move.r=true;
+    if(e.code==='ShiftLeft'||e.code==='ShiftRight')move.sprint=true;
+    if(e.code==='KeyR')reload();
+    if(e.code==='Space')setAiming(true);
+  });
+  addEventListener('keyup',e=>{
+    if(e.code==='KeyW')move.f=false;if(e.code==='KeyS')move.b=false;if(e.code==='KeyA')move.l=false;if(e.code==='KeyD')move.r=false;
+    if(e.code==='ShiftLeft'||e.code==='ShiftRight')move.sprint=false;
+    if(e.code==='Space')setAiming(false);
+  });
+
+  let enemyTemplate=state.human;
+  const botPool=[];
+  let warmupScheduled=false;
+  function pickSpawn(){
+    const side=Math.floor(Math.random()*4), pad=27+Math.random()*2.5;
+    if(side===0)return new THREE.Vector3((Math.random()-.5)*48,0,-pad);
+    if(side===1)return new THREE.Vector3((Math.random()-.5)*48,0,pad);
+    if(side===2)return new THREE.Vector3(-pad,0,(Math.random()-.5)*48);
+    return new THREE.Vector3(pad,0,(Math.random()-.5)*48);
+  }
+  function buildBotInstance(){
+    if(!state.human) return null;
+    const model=SkeletonUtils.clone(state.human);
+    model.traverse(o=>{
+      if(o.isMesh){o.castShadow=false;o.receiveShadow=false;o.frustumCulled=true;}
+    });
+    const group=new THREE.Group(); group.visible=false; group.add(model); scene.add(group);
+    // Prepare animation while the bot is hidden, so the 10-second spawn itself stays lightweight.
+    let mixer=null;
+    if(state.humanAnimations?.length){
+      mixer=new THREE.AnimationMixer(model);
+      mixer.clipAction(state.humanAnimations[0]).play();
+    }
+    return {obj:group,model,mixer,hp:100,atk:0,stun:0,active:false};
+  }
+  function scheduleBotWarmup(){
+    if(warmupScheduled || !state.human || dead) return;
+    warmupScheduled=true;
+    const warmOne=()=>{
+      if(!state.human || botPool.length>=2 || dead){warmupScheduled=false;return;}
+      try{ const bot=buildBotInstance(); if(bot) botPool.push(bot); } catch(e){ console.warn('CPU warmup failed',e); }
+      setTimeout(warmOne,900);
+    };
+    setTimeout(warmOne,250);
+  }
+  function activateBot(bot){
+    const pos=pickSpawn(); bot.obj.position.copy(pos); bot.obj.visible=true; bot.hp=100; bot.atk=.25; bot.stun=0; bot.active=true;
+    enemies.push(bot);
+  }
+  function createEnemy(){
+    if(enemies.length>=8) return;
+    let bot=botPool.pop();
+    if(!bot){ setStatus('CPUを準備中…'); return; }
+    activateBot(bot);
+  }
+  function removeEnemy(ent){
+    ent.active=false; ent.obj.visible=false; ent.obj.position.set(0,-100,0); ent.atk=0; ent.stun=0; ent.hp=100;
+    const i=enemies.indexOf(ent); if(i>=0)enemies.splice(i,1);
+    if(botPool.length<2) botPool.push(ent);
+  }
+
+  function updateHUD(){
+    $('hp').textContent=Math.max(0,Math.ceil(hp));
+    $('ammo').textContent=ammo;$('reserve').textContent=reserve;$('score').textContent=score;
+    $('wave').textContent=1+Math.floor(score/500); $('cpus').textContent=enemies.length;
+    const remain=Math.max(0,spawnTimer); $('nextCpu').textContent=remain.toFixed(1)+'s';
+    $('ammo').style.opacity=ammo<=5?'1':'.95';
+  }
+  function damagePlayer(v){
+    hp-=v;
+    $('damage').style.opacity=.8;
+    setTimeout(()=>$('damage').style.opacity=0,90);
+    updateHUD();
+    if(hp<=0)end(false);
+  }
+  function reload(){
+    if(reloading||ammo>=30||reserve<=0||dead)return;
+    reloading=true; firing=false; setStatus('リロード中…');
+    setTimeout(()=>{
+      const n=Math.min(30-ammo,reserve); ammo+=n; reserve-=n; reloading=false;
+      setStatus('戦闘中'); updateHUD();
+    },850);
+  }
+  function makeShotEffect(){
+    flashTimer=.065; muzzleFlash.material.opacity=.95; muzzleLight.intensity=7.5;
+    hitFlashTimer=Math.max(hitFlashTimer,0);
+    const color=aiming?0xfff6ce:0xffdf9c;
+    muzzleFlash.material.color.setHex(color);
+  }
+  function shoot(){
+    if(reloading||dead)return;
+    if(ammo<=0){reload();return;}
+    ammo--; fireTimer=0.095; updateHUD(); makeShotEffect();
+    // Camera kick + view-model kick: quick impulse, smooth return in update().
+    recoilPitch -= aiming?0.0105:0.0145;
+    recoilYaw += (Math.random()-.5)*(aiming?0.004:0.007);
+    recoilKick += aiming?0.055:0.085;
+    weaponBobY -= aiming?0.035:0.055;
+    weaponBobX += (Math.random()-.5)*0.022;
+
+    raycaster.setFromCamera(new THREE.Vector2(0,0),camera);
+    const targets=[];enemies.forEach(e=>collectMeshes(e.model,m=>targets.push(m)));
+    const hits=raycaster.intersectObjects(targets,true);
+    if(hits.length){
+      const hit=hits[0].object;
+      const ent=enemies.find(e=>e.model===hit||e.model.getObjectById?.(hit.id));
+      if(ent){
+        ent.hp-=35; ent.stun=.14;
+        $('crosshair').classList.add('hit');
+        setTimeout(()=>$('crosshair').classList.remove('hit'),70);
+        if(ent.hp<=0){score+=100;removeEnemy(ent);updateHUD();}
+      }
+    }
+  }
+  function end(won){
+    dead=!won;
+    firing=false;setAiming(false);
+    if(won){$('clearScore').textContent=score;$('clear').style.display='flex';}
+    else{$('deadScore').textContent=score;$('dead').style.display='flex';}
+  }
+  function restart(){location.reload();}
+
+  function updateViewModel(dt,t){
+    const moveMagnitude=Math.min(1,Math.hypot(touchMove.x,touchMove.y) + ((move.f||move.b||move.l||move.r)?1:0));
+    const bobSpeed=move.sprint?10:7;
+    const targetX=Math.sin(t*bobSpeed)*0.018*moveMagnitude;
+    const targetY=Math.abs(Math.cos(t*bobSpeed*.5))*0.012*moveMagnitude;
+    weaponBobX=THREE.MathUtils.damp(weaponBobX,targetX,.8,dt);
+    weaponBobY=THREE.MathUtils.damp(weaponBobY,targetY,.8,dt);
+
+    recoilPitch=THREE.MathUtils.damp(recoilPitch,0,15,dt);
+    recoilYaw=THREE.MathUtils.damp(recoilYaw,0,14,dt);
+    recoilKick=THREE.MathUtils.damp(recoilKick,0,18,dt);
+
+    const ads=aiming?1:0;
+    const targetWeaponX=THREE.MathUtils.lerp(.42,.03,ads);
+    const targetWeaponY=THREE.MathUtils.lerp(-.40,-.25,ads);
+    const targetWeaponZ=THREE.MathUtils.lerp(-.78,-.98,ads);
+    const kickZ=recoilKick;
+    viewModel.position.x=0;
+    viewModel.position.y=0;
+    viewModel.position.z=0;
+    weapon.position.x=THREE.MathUtils.damp(weapon.position.x,targetWeaponX+weaponBobX,.0+14,dt);
+    weapon.position.y=THREE.MathUtils.damp(weapon.position.y,targetWeaponY+weaponBobY,.0+14,dt);
+    weapon.position.z=THREE.MathUtils.damp(weapon.position.z,targetWeaponZ+kickZ,.0+18,dt);
+    weapon.rotation.x=THREE.MathUtils.damp(weapon.rotation.x,0,12,dt);
+    weapon.rotation.y=THREE.MathUtils.damp(weapon.rotation.y,Math.PI + recoilYaw,12,dt);
+    weapon.rotation.z=THREE.MathUtils.damp(weapon.rotation.z,-recoilKick*.42,14,dt);
+
+    supportArm.position.x=THREE.MathUtils.damp(supportArm.position.x,.04+weaponBobX,10,dt);
+    supportArm.position.y=THREE.MathUtils.damp(supportArm.position.y,aiming?-.10:-.18,10,dt);
+    supportArm.position.z=THREE.MathUtils.damp(supportArm.position.z,aiming?-.96:-.78,10,dt);
+    gripArm.position.x=THREE.MathUtils.damp(gripArm.position.x,aiming?.16:.38,10,dt);
+    gripArm.position.y=THREE.MathUtils.damp(gripArm.position.y,aiming?-.19:-.31,10,dt);
+    gripArm.position.z=THREE.MathUtils.damp(gripArm.position.z,aiming?-.78:-.56,10,dt);
+
+    camera.fov=THREE.MathUtils.damp(camera.fov,aiming?40:75,10,dt);
+    camera.updateProjectionMatrix();
+    camera.rotation.y=yaw+recoilYaw*.28;
+    camera.rotation.x=pitch+recoilPitch;
+
+    flashTimer-=dt;
+    const flash=Math.max(0,flashTimer/0.065);
+    muzzleFlash.material.opacity=flash;
+    muzzleFlash.scale.setScalar(1+1.8*(1-flash));
+    muzzleLight.intensity=7.5*flash;
+    const spread=aiming?2:3;
+    $('crosshair').style.transform=`translate(-50%,-50%) scale(${1+recoilKick*spread})`;
+  }
+
+  function update(dt){
+    if(dead)return;
+    totalTime+=dt;
+    fireTimer=Math.max(0,fireTimer-dt);
+    spawnTimer-=dt;
+
+    if(firing && fireTimer<=0) shoot();
+    if(spawnTimer<=0){
+      if(state.human) createEnemy();
+      spawnTimer=10.0;
+    }
+
+    const mz=(move.b?1:0)-(move.f?1:0), mx=(move.r?1:0)-(move.l?1:0);
+    const input=new THREE.Vector2(mx,mz); if(input.lengthSq()>1)input.normalize();
+    const touchLen=Math.min(1,Math.hypot(touchMove.x,touchMove.y));
+    let tx=touchMove.x, ty=touchMove.y;
+    if(touchLen>0.01){
+      const ti=new THREE.Vector2(tx,ty);
+      if(ti.lengthSq()>1)ti.normalize();
+      input.x=ti.x;input.y=ti.y;
+    }
+    const speed=move.sprint?9:5.5;
+    const forward=new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion);forward.y=0;forward.normalize();
+    const right=new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion);right.y=0;right.normalize();
+    camera.position.addScaledVector(forward,-input.y*speed*dt);
+    camera.position.addScaledVector(right,input.x*speed*dt);
+    camera.position.y=1.65;
+    camera.position.x=THREE.MathUtils.clamp(camera.position.x,-31,31);
+    camera.position.z=THREE.MathUtils.clamp(camera.position.z,-31,31);
+
+    enemies.forEach(ent=>{
+      if(ent.mixer)ent.mixer.update(dt);
+      const p=ent.obj.position;
+      const to=camera.position.clone().sub(p); to.y=0;
+      const d=to.length();
+      if(ent.stun>0)ent.stun-=dt;
+      if(d>2.35 && ent.stun<=0){to.normalize();p.addScaledVector(to,Math.min(2.2*dt,d-2.2));}
+      ent.model.rotation.y=Math.atan2(camera.position.x-p.x,camera.position.z-p.z);
+      ent.atk-=dt;
+      if(d<3.0&&ent.atk<=0){ent.atk=1.05;damagePlayer(7);}
+    });
+
+    updateViewModel(dt,totalTime);
+    updateHUD();
+  }
+
+  function animate(){requestAnimationFrame(animate);const dt=Math.min(.05,clock.getDelta());update(dt);renderer.render(scene,camera);}
+  addEventListener('resize',()=>{
+    camera.aspect=Math.max(innerWidth,1)/Math.max(innerHeight,1);
+    camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight,false);
+  });
+  $('retry').onclick=restart;$('retry2').onclick=restart;
+
+  state.started=true;
+  $('boot').style.display='none';$('hud').style.display='block';
+  $('touchUI').style.display=(matchMedia('(pointer:coarse)').matches?'block':'none');
+  setStatus(state.human ? '戦闘中 ― CPUは10秒ごとにスポーン' : '戦闘中 ― 人モデル未読込。② 人を読み込むと10秒ごとにCPUが出現');
+  updateHUD();
+  game={scene,camera,renderer,shoot,reload,setWeapon,warmBots:scheduleBotWarmup};
+  animate();
+  setTimeout(()=>{ try{ scheduleBotWarmup(); }catch(e){ console.warn('idle bot warmup',e); } }, 2500);
+}
+
+function makeFallbackGun(THREE){
+  const g=new THREE.Group();
+  const body=new THREE.Mesh(new THREE.BoxGeometry(.26,.18,.9),new THREE.MeshStandardMaterial({color:0x171b21,metalness:.8,roughness:.3}));
+  body.position.z=-.3;g.add(body);
+  const barrel=new THREE.Mesh(new THREE.CylinderGeometry(.045,.055,.7,12),new THREE.MeshStandardMaterial({color:0x454d58,metalness:.9,roughness:.2}));
+  barrel.rotation.x=Math.PI/2;barrel.position.set(0,.01,-.94);g.add(barrel);
+  const grip=new THREE.Mesh(new THREE.BoxGeometry(.13,.35,.16),new THREE.MeshStandardMaterial({color:0x292d33,metalness:.3,roughness:.7}));
+  grip.position.set(0,-.22,-.05);grip.rotation.x=-.22;g.add(grip);
+  return g;
+}
+</script>
+</body>
+</html>
