@@ -79,17 +79,16 @@
 <div id="boot">
   <div class="panel">
     <h1>THREE.JS FPS / CPU ARENA</h1>
-    <p class="sub">3D素材はHTMLに埋め込まず、指定したファイル名で参照します。
-    ボタンを押した素材だけを読み込み、読み込み済みの素材はゲーム中でも反映されます。タブレット操作にも対応。</p>
-    <div class="grid">
-      <button id="loadFloor">① 新しい床を読み込む</button>
-      <button id="loadHuman">② 人を読み込む</button>
-      <button id="loadWall">③ 壁を読み込む</button>
-      <button id="loadRifle">④ 銃を読み込む</button>
+    <p class="sub">3D素材はHTMLに埋め込まず、HTMLと同じ場所にあるファイル名を参照します。起動時に素材を1個ずつ順番に自動読み込みします。読み込み中も画面は操作可能なUIで進捗を表示します。</p>
+    <div id="loadQueue" class="tags" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0">
+      <span class="tag" id="qFloor">① 床　待機</span>
+      <span class="tag" id="qWall">② 壁　待機</span>
+      <span class="tag" id="qRifle">③ 銃　待機</span>
+      <span class="tag" id="qHuman">④ 人　待機</span>
     </div>
-    <button id="startGame" class="primary" style="width:100%;margin-top:10px">ワールド開始</button>
-    <div id="status">ワールド開始可能。素材は必要なものだけボタンで読み込みます。</div>
-    <div style="margin-top:10px;font-size:12px;color:#9db0c6;line-height:1.6">参照ファイル: <code>sci-fi_floor_panel 2.glb</code> / <code>polo.fbx</code> / <code>wall 2.glb</code> / <code>dark_syndicate_assault_rifle.glb</code></div>
+    <button id="startGame" class="primary" style="width:100%;margin-top:10px" disabled>素材を読み込み中…</button>
+    <div id="status">起動準備中…</div>
+    <div style="margin-top:10px;font-size:12px;color:#9db0c6;line-height:1.6">参照ファイル: <code>sci-fi_floor_panel 2.glb</code> / <code>wall 2.glb</code> / <code>gun.glb</code> / <code>polo.fbx</code></div>
     <div class="tags">
       <span class="tag">WASD 移動</span><span class="tag">マウス 視点</span><span class="tag">左クリック 長押しで連射</span>
       <span class="tag">右クリック / ADS 覗く</span><span class="tag">R リロード</span><span class="tag">Shift ダッシュ</span>
@@ -126,14 +125,14 @@ const ASSET_PATHS = {
   floor:'sci-fi_floor_panel 2.glb',
   human:'polo.fbx',
   wall:'wall 2.glb',
-  rifle:'dark_syndicate_assault_rifle.glb'
+  rifle:'gun.glb'
 };
 
 const state = {
   floor:null, human:null, wall:null, rifle:null,
   humanAnimations:[],
   three:null, loaders:null, scene:null, camera:null, renderer:null,
-  started:false, loading:new Set(), mounts:{floor:null,wall:null,rifle:null}, fallback:{floor:null,covers:null}
+  started:false, loading:new Set(), mounts:{floor:null,wall:null,rifle:null}, fallback:{floor:null,covers:null}, autoLoaded:false, autoLoading:false
 };
 const $ = id => document.getElementById(id);
 function setStatus(msg){ $("status").textContent=msg; }
@@ -146,8 +145,8 @@ async function fetchAsset(url){
 }
 
 function externalAssetHint(){
-  if(location.protocol==='file:') return 'この版はファイル参照方式です。HTMLをfile://で直接開くとブラウザの制限でassets/を読めないことがあります。HTTPサーバー経由で開いてください。';
-  return 'assets/フォルダをHTMLと同じ場所に置き、ファイル名を確認してください。';
+  if(location.protocol==='file:') return 'HTMLと同じ場所に指定ファイルを置き、HTTPサーバー経由で開いてください。';
+  return 'HTMLと同じ場所に指定ファイル名があるか確認してください。';
 }
 
 async function loadThree(){
@@ -247,16 +246,57 @@ async function loadRifleAsset(){
     state.loading.delete('rifle'); $('loadRifle').disabled=!!state.rifle;
   }
 }
-function bindLoaderButton(id,fn){
-  $(id).onclick=async()=>{
-    try{ await fn(); }
-    catch(e){ console.error(e); setStatus((e?.message||e)+"。この素材は無視してワールドを開始できます。"); $(id).disabled=false; }
-  };
+async function loadNamedAsset(kind, label, queueId, loaderFn){
+  const q=$(queueId);
+  q.textContent=label+'　読み込み中…';
+  q.style.borderColor='#6ea8ff';
+  try{
+    await loaderFn();
+    q.textContent=label+'　✓ 完了';
+    q.style.borderColor='#55d6a3';
+    return true;
+  }catch(e){
+    console.error(e);
+    q.textContent=label+'　! 失敗';
+    q.style.borderColor='#ff7b7b';
+    setStatus(label+' の読み込みに失敗しました。次の素材へ進みます。');
+    return false;
+  }
 }
-bindLoaderButton("loadFloor",loadFloorAsset);
-bindLoaderButton("loadHuman",loadHumanAsset);
-bindLoaderButton("loadWall",loadWallAsset);
-bindLoaderButton("loadRifle",loadRifleAsset);
+
+async function autoLoadAssetsSequentially(){
+  if(state.autoLoading || state.autoLoaded) return;
+  state.autoLoading=true;
+  $('startGame').disabled=true;
+  $('startGame').textContent='素材を読み込み中…';
+  try{
+    await loadThree();
+    setStatus('① 床を読み込み中…');
+    await loadNamedAsset('floor','① 床','qFloor',loadFloorAsset);
+    setStatus('② 壁を読み込み中…');
+    await loadNamedAsset('wall','② 壁','qWall',loadWallAsset);
+    setStatus('③ 銃を読み込み中…');
+    await loadNamedAsset('rifle','③ 銃','qRifle',loadRifleAsset);
+    setStatus('④ 人を読み込み中…');
+    await loadNamedAsset('human','④ 人','qHuman',loadHumanAsset);
+    state.autoLoaded=true;
+    $('startGame').disabled=false;
+    $('startGame').textContent='ワールド開始';
+    setStatus('すべての素材の読み込み処理が完了しました。ワールド開始を押してください。');
+  }finally{
+    state.autoLoading=false;
+  }
+}
+
+// 起動直後に自動で1個ずつ読み込む。
+window.addEventListener('load',()=>{
+  autoLoadAssetsSequentially().catch(e=>{
+    console.error(e);
+    $('startGame').disabled=false;
+    $('startGame').textContent='ワールド開始';
+    setStatus('自動読み込み処理でエラーが発生しました。読み込めた素材で開始できます。');
+  });
+});
 </script>
 
 
@@ -264,16 +304,16 @@ bindLoaderButton("loadRifle",loadRifleAsset);
 let game=null;
 $('startGame').onclick=async()=>{
   try{
-    if(state.started) return;
+    if(state.started || state.autoLoading) return;
     $('startGame').disabled=true;
-    setStatus('Three.jsを準備中…');
-    await loadThree();
     setStatus('3Dワールドを起動中…');
+    await loadThree();
     await initGame();
   }catch(e){
     console.error(e);
     setStatus('ゲーム開始失敗: '+(e?.message||e));
     $('startGame').disabled=false;
+    $('startGame').textContent='ワールド開始';
   }
 };
 
