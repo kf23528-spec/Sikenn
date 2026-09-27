@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Three.js FPS CPU Arena — External Assets</title>
+<title>Three.js FPS CPU Arena — Named Assets</title>
 <style>
   :root{color-scheme:dark}
   *{box-sizing:border-box}
@@ -79,7 +79,7 @@
 <div id="boot">
   <div class="panel">
     <h1>THREE.JS FPS / CPU ARENA</h1>
-    <p class="sub">3D素材はHTMLに埋め込まず、assets/ フォルダのファイル名で参照します。
+    <p class="sub">3D素材はHTMLに埋め込まず、指定したファイル名で参照します。
     ボタンを押した素材だけを読み込み、読み込み済みの素材はゲーム中でも反映されます。タブレット操作にも対応。</p>
     <div class="grid">
       <button id="loadFloor">① 新しい床を読み込む</button>
@@ -89,7 +89,7 @@
     </div>
     <button id="startGame" class="primary" style="width:100%;margin-top:10px">ワールド開始</button>
     <div id="status">ワールド開始可能。素材は必要なものだけボタンで読み込みます。</div>
-    <div style="margin-top:10px;font-size:12px;color:#9db0c6;line-height:1.6">参照先: <code>assets/floor.glb</code> / <code>assets/human.fbx</code> / <code>assets/wall.glb</code> / <code>assets/rifle.glb</code></div>
+    <div style="margin-top:10px;font-size:12px;color:#9db0c6;line-height:1.6">参照ファイル: <code>sci-fi_floor_panel 2.glb</code> / <code>polo.fbx</code> / <code>wall 2.glb</code> / <code>dark_syndicate_assault_rifle.glb</code></div>
     <div class="tags">
       <span class="tag">WASD 移動</span><span class="tag">マウス 視点</span><span class="tag">左クリック 長押しで連射</span>
       <span class="tag">右クリック / ADS 覗く</span><span class="tag">R リロード</span><span class="tag">Shift ダッシュ</span>
@@ -123,10 +123,10 @@
 
 <script>
 const ASSET_PATHS = {
-  floor:'assets/floor.glb',
-  human:'assets/human.fbx',
-  wall:'assets/wall.glb',
-  rifle:'assets/rifle.glb'
+  floor:'sci-fi_floor_panel 2.glb',
+  human:'polo.fbx',
+  wall:'wall 2.glb',
+  rifle:'dark_syndicate_assault_rifle.glb'
 };
 
 const state = {
@@ -140,7 +140,7 @@ function setStatus(msg){ $("status").textContent=msg; }
 function ready(){ $("startGame").disabled = false; }
 
 async function fetchAsset(url){
-  const res = await fetch(url, {cache:'force-cache'});
+  const res = await fetch(new URL(url, document.baseURI).href, {cache:'force-cache'});
   if(!res.ok) throw new Error(`アセット取得失敗: ${url} (${res.status})`);
   return await res.arrayBuffer();
 }
