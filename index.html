@@ -8,7 +8,7 @@
   :root{color-scheme:dark}
   *{box-sizing:border-box}
   html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#060910;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
-  canvas{display:block}
+  canvas{display:block;filter:saturate(1.08) contrast(1.04)}
   #boot{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;background:radial-gradient(circle at 50% 25%,#152132 0,#070b12 55%,#020307 100%)}
   .panel{width:min(720px,94vw);padding:28px;border:1px solid #3a4b62;border-radius:18px;background:rgba(8,12,18,.94);box-shadow:0 26px 90px #000b;backdrop-filter:blur(9px)}
   h1{margin:0 0 8px;font-size:28px;letter-spacing:.04em}
@@ -26,10 +26,10 @@
   .tags{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
   .tag{padding:5px 8px;border-radius:999px;background:#111a26;color:#9db0c5;font-size:12px}
   #hud{position:fixed;inset:0;z-index:20;pointer-events:none;color:#fff}
-  #topbar{position:absolute;top:14px;left:14px;display:flex;gap:8px;flex-wrap:wrap}
-  .hudbox{padding:8px 11px;border-radius:10px;background:#070c14c8;border:1px solid #314258;font-size:13px}
+  #topbar{position:absolute;top:16px;left:16px;display:flex;gap:8px;flex-wrap:wrap;filter:drop-shadow(0 8px 20px #0008)}
+  .hudbox{padding:8px 11px;border-radius:10px;background:linear-gradient(180deg,#0e1824e8,#070c14d8);border:1px solid #58718c88;box-shadow:inset 0 1px 0 #ffffff12,0 8px 24px #0006;font-size:13px;letter-spacing:.04em}.hudbox b{font-variant-numeric:tabular-nums}
   #center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:20px;height:20px}
-  #center:before,#center:after{content:"";position:absolute;background:#fff;opacity:.88}
+  #center:before,#center:after{content:"";position:absolute;background:#dff6ff;opacity:.9;box-shadow:0 0 8px #9be7ff}
   #center:before{left:9px;top:1px;width:2px;height:18px}
   #center:after{left:1px;top:9px;width:18px;height:2px}
   #hitmarker{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(0);opacity:0;width:30px;height:30px}
@@ -38,8 +38,8 @@
   #hitmarker:after{left:0;top:14px;width:30px;height:2px}
   #damage{position:absolute;inset:0;background:rgba(190,20,20,.28);opacity:0;transition:opacity .05s}
   #reticleLabel{position:absolute;left:50%;top:calc(50% + 21px);transform:translateX(-50%);font-size:10px;color:#d8e4f2;opacity:.65;letter-spacing:.08em}
-  #message{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);padding:7px 10px;border-radius:9px;background:#070c14c0;border:1px solid #314258;color:#cdd9e5;font-size:12px}
-  #gunWarn{position:absolute;right:14px;bottom:14px;padding:6px 9px;border:1px solid #6d5a37;background:#211a0dce;border-radius:8px;color:#ffd98b;font-size:11px;display:none}
+  #message{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);padding:8px 12px;border-radius:10px;background:#07101ad8;border:1px solid #5a738d66;box-shadow:0 10px 35px #0008,inset 0 1px 0 #ffffff12;color:#d9e6f2;font-size:12px;letter-spacing:.04em}
+  #gunWarn{position:absolute;right:14px;bottom:14px;box-shadow:0 10px 30px #0008;;padding:6px 9px;border:1px solid #6d5a37;background:#211a0dce;border-radius:8px;color:#ffd98b;font-size:11px;display:none}
   #dead{position:fixed;inset:0;z-index:90;display:none;align-items:center;justify-content:center;background:#000b}
   .end{width:min(420px,90vw);padding:28px;text-align:center;border-radius:16px;background:#0b111a;border:1px solid #3a4b62;box-shadow:0 20px 70px #000b}
   .end h2{margin:0 0 10px;font-size:38px}.end p{color:#b4c2d2}
@@ -63,7 +63,7 @@
 <div id="boot">
   <div class="panel">
     <h1>THREE.JS FPS / 仮</h1>
-    <p class="sub">指定された床・壁・銃のGLBを読み込みます。銃は画面右下に配置し、腕を添える視点モデルにしています。敵は追加素材なしの簡易ロボットで、常時10体前後を維持します。</p>
+    <p class="sub">指定された床・壁・銃のGLBを読み込みます。銃は画面右下に配置し、腕は表示しません。敵は追加素材なしの簡易ロボットで、常時10体前後を維持します。</p>
     <div class="asset-grid">
       <div class="asset"><b>床</b><span id="aFloor">確認中…</span><br><code>sci-fi_floor_panel 2.glb</code></div>
       <div class="asset"><b>壁</b><span id="aWall">確認中…</span><br><code>wall 2.glb</code></div>
@@ -143,7 +143,7 @@ const state = {
   bob: 0
 };
 
-let scene, camera, renderer, weaponRoot, weapon, supportArm, gripArm;
+let scene, camera, renderer, weaponRoot, weapon;
 let muzzleGlow, muzzleLight;
 let raycaster = new THREE.Raycaster();
 let clock = new THREE.Clock();
@@ -192,25 +192,38 @@ function setupRenderer(){
   camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.05, 220);
   camera.rotation.order = 'YXZ';
   camera.position.set(0, 1.65, 20);
+  camera.lookAt(0,1.7,0);
 
   renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.35));
   renderer.setSize(innerWidth, innerHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.1;
+  renderer.toneMappingExposure = 1.18;
   renderer.domElement.style.touchAction = 'none';
   document.body.appendChild(renderer.domElement);
 }
 
 function addLights(){
-  scene.add(new THREE.HemisphereLight(0xf2f8ff, 0x3b4655, 2.15));
-  const sun = new THREE.DirectionalLight(0xffffff, 2.8);
+  scene.add(new THREE.HemisphereLight(0xcfe8ff, 0x1b2430, 2.25));
+  const sun = new THREE.DirectionalLight(0xffffff, 3.15);
   sun.position.set(18, 28, 10);
   scene.add(sun);
-  const centerLight = new THREE.PointLight(0xffd7a2, 25, 48, 2);
-  centerLight.position.set(0, 7, 0);
+
+  const centerLight = new THREE.PointLight(0x9ddcff, 38, 52, 2);
+  centerLight.position.set(0, 6.5, 0);
   scene.add(centerLight);
+
+  const red = new THREE.PointLight(0xff304f, 12, 34, 2);
+  red.position.set(-20, 3.8, -18);
+  scene.add(red);
+  const cyan = new THREE.PointLight(0x23d7ff, 13, 36, 2);
+  cyan.position.set(20, 4.4, 18);
+  scene.add(cyan);
+
+  const rim = new THREE.PointLight(0x8d7bff, 10, 30, 2);
+  rim.position.set(-18, 7, 20);
+  scene.add(rim);
 }
 
 function cloneNormalize(obj, maxSize){
@@ -242,14 +255,31 @@ function buildArena(){
   }else{
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(72,72,36,36),
-      new THREE.MeshStandardMaterial({color:0x4b5762,roughness:.82,metalness:.16})
+      new THREE.MeshStandardMaterial({color:0x394650,roughness:.72,metalness:.28})
     );
     floor.rotation.x=-Math.PI/2;
     scene.add(floor);
-    const grid = new THREE.GridHelper(72,36,0xc8d8e6,0x7f909e1c);
+    const grid = new THREE.GridHelper(72,36,0x8fb4c8,0x415360);
     grid.position.y=.015;
     scene.add(grid);
   }
+
+  // Thin emissive guide lines give the arena a cleaner sci-fi silhouette.
+  const neonMat = new THREE.MeshBasicMaterial({color:0x49dfff,transparent:true,opacity:.72});
+  const neonPink = new THREE.MeshBasicMaterial({color:0xff4672,transparent:true,opacity:.55});
+  const addNeon = (x,z,w,d,mat=neonMat) => {
+    const strip = new THREE.Mesh(new THREE.BoxGeometry(w,.035,d),mat);
+    strip.position.set(x,.045,z);
+    scene.add(strip);
+  };
+  addNeon(0,-18,42,.06); addNeon(0,18,42,.06,neonPink);
+  addNeon(-18,0,.06,42,neonPink); addNeon(18,0,.06,42);
+  addNeon(0,0,10,.035);
+
+  // Low-cost ceiling glow panels: just planes, no extra textures.
+  const glowMat = new THREE.MeshBasicMaterial({color:0x8adfff,transparent:true,opacity:.045,side:THREE.DoubleSide});
+  const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(68,68),glowMat);
+  ceiling.rotation.x=Math.PI/2; ceiling.position.y=11; scene.add(ceiling);
 
   const wallGroup = new THREE.Group();
   if(state.wall){
@@ -272,6 +302,22 @@ function buildArena(){
   scene.add(wallGroup);
 }
 
+
+function addArenaAtmosphere(){
+  const count=180;
+  const pos=new Float32Array(count*3);
+  for(let i=0;i<count;i++){
+    pos[i*3]=(Math.random()-.5)*68;
+    pos[i*3+1]=1.2+Math.random()*8.5;
+    pos[i*3+2]=(Math.random()-.5)*68;
+  }
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  const mat=new THREE.PointsMaterial({color:0x8fdcff,size:.045,transparent:true,opacity:.28,sizeAttenuation:true,depthWrite:false});
+  const pts=new THREE.Points(geo,mat);
+  scene.add(pts);
+}
+
 function makeFallbackGun(){
   const g=new THREE.Group();
   const body=new THREE.Mesh(new THREE.BoxGeometry(.26,.18,.92),new THREE.MeshStandardMaterial({color:0x161a1f,metalness:.82,roughness:.28}));
@@ -283,21 +329,6 @@ function makeFallbackGun(){
   const grip=new THREE.Mesh(new THREE.BoxGeometry(.13,.34,.16),new THREE.MeshStandardMaterial({color:0x292e35,metalness:.35,roughness:.72}));
   grip.position.set(0,-.22,-.06);grip.rotation.x=-.2;g.add(grip);
   return g;
-}
-
-function makeArm(length, radius, side){
-  const group=new THREE.Group();
-  const sleeveMat=new THREE.MeshStandardMaterial({color:0x252d36,roughness:.9,metalness:.12});
-  const skinMat=new THREE.MeshStandardMaterial({color:0xb77c60,roughness:.92});
-  const arm=new THREE.Mesh(new THREE.CylinderGeometry(radius,radius*1.07,length,10),sleeveMat);
-  arm.rotation.z=Math.PI/2;
-  arm.position.x=-length*.45;
-  group.add(arm);
-  const hand=new THREE.Mesh(new THREE.BoxGeometry(.3,.17,.37),skinMat);
-  hand.position.x=length*.08;
-  group.add(hand);
-  group.userData.side=side;
-  return group;
 }
 
 function setupWeapon(){
@@ -312,20 +343,10 @@ function setupWeapon(){
     const max=Math.max(size.x,size.y,size.z)||1;
     weapon.scale.multiplyScalar(1.25/max);
   }
-  weapon.position.set(.46,-.39,-.82);
-  weapon.rotation.set(0,Math.PI,0);
+  weapon.position.set(.48,-.43,-.84);
+  weapon.rotation.set(-.025,Math.PI,0);
   weapon.traverse(o=>{if(o.isMesh){o.frustumCulled=false;o.castShadow=false;}});
   weaponRoot.add(weapon);
-
-  supportArm=makeArm(.72,.075,'support');
-  supportArm.position.set(.05,-.18,-.78);
-  supportArm.rotation.set(.18,-.10,-.32);
-  weaponRoot.add(supportArm);
-
-  gripArm=makeArm(.6,.08,'grip');
-  gripArm.position.set(.39,-.30,-.58);
-  gripArm.rotation.set(-.14,-.02,-.25);
-  weaponRoot.add(gripArm);
 
   muzzleGlow=new THREE.Mesh(new THREE.SphereGeometry(.075,10,10),new THREE.MeshBasicMaterial({color:0xffefb4,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending}));
   muzzleGlow.position.set(.02,-.34,-1.72);
@@ -556,10 +577,9 @@ function updatePlayer(dt){
   weapon.position.x=THREE.MathUtils.damp(weapon.position.x,targetX,14,dt);
   weapon.position.y=THREE.MathUtils.damp(weapon.position.y,targetY,14,dt);
   weapon.position.z=THREE.MathUtils.damp(weapon.position.z,targetZ,18,dt);
+  weapon.rotation.x=THREE.MathUtils.damp(weapon.rotation.x,-.025+state.recoilPitch*.15,12,dt);
   weapon.rotation.y=THREE.MathUtils.damp(weapon.rotation.y,Math.PI+state.recoilYaw,12,dt);
   weapon.rotation.z=THREE.MathUtils.damp(weapon.rotation.z,-state.recoilKick*.36,14,dt);
-  supportArm.position.set(THREE.MathUtils.damp(supportArm.position.x,.05,10,dt),THREE.MathUtils.damp(supportArm.position.y,state.aim?-.10:-.18,10,dt),THREE.MathUtils.damp(supportArm.position.z,state.aim?-.96:-.78,10,dt));
-  gripArm.position.set(THREE.MathUtils.damp(gripArm.position.x,state.aim?.17:.39,10,dt),THREE.MathUtils.damp(gripArm.position.y,state.aim?-.19:-.30,10,dt),THREE.MathUtils.damp(gripArm.position.z,state.aim?-.79:-.58,10,dt));
   camera.fov=THREE.MathUtils.damp(camera.fov,state.aim?40:75,10,dt);camera.updateProjectionMatrix();
 
   state.muzzleFlash=Math.max(0,state.muzzleFlash-dt);
@@ -594,7 +614,7 @@ function resize(){
 
 async function startGame(){
   $('start').disabled=true;
-  setupRenderer();addLights();buildArena();setupWeapon();setupInput();
+  setupRenderer();addLights();buildArena();setupWeapon();setupInput();addArenaAtmosphere();
   state.game=true;
   for(let i=0;i<TARGET_ENEMIES;i++)spawnEnemy();
   $('boot').style.display='none';$('hud').style.display='block';
